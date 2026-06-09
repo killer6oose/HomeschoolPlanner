@@ -1,0 +1,26 @@
+<UserControl x:Class="HomeschoolPlanner.Views.WeekView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BackgroundBrush}">
+
+    <!-- The entire view is built in code-behind for full layout control.
+         This XAML just provides the root ScrollViewer shell. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Day header row - populated in code-behind -->
+        <Grid x:Name="HeaderRow" Grid.Row="0" Background="White"
+              Margin="0" MinHeight="52" />
+
+        <!-- Day columns - populated in code-behind -->
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <Grid x:Name="DayColumnsGrid" />
+        </ScrollViewer>
+    </Grid>
+
+</UserControl>

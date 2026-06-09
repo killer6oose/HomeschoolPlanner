@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+
+  <!-- Calendar body -->
+  <rect x="4" y="10" width="56" height="50" rx="6" ry="6" fill="#FFFFFF" />
+
+  <!-- Header bar -->
+  <rect x="4" y="10" width="56" height="16" rx="6" ry="6" fill="#4A7CB5" />
+  <!-- Square off the bottom corners of the header -->
+  <rect x="4" y="18" width="56" height="8" fill="#4A7CB5" />
+
+  <!-- Calendar ring pegs -->
+  <rect x="18" y="4" width="6" height="12" rx="3" ry="3" fill="#2A5C95" />
+  <rect x="40" y="4" width="6" height="12" rx="3" ry="3" fill="#2A5C95" />
+
+  <!-- Day column headers (tiny white dots) -->
+  <circle cx="14" cy="20" r="1.5" fill="rgba(255,255,255,0.6)" />
+  <circle cx="23" cy="20" r="1.5" fill="rgba(255,255,255,0.6)" />
+  <circle cx="32" cy="20" r="1.5" fill="rgba(255,255,255,0.6)" />
+  <circle cx="41" cy="20" r="1.5" fill="rgba(255,255,255,0.6)" />
+  <circle cx="50" cy="20" r="1.5" fill="rgba(255,255,255,0.6)" />
+
+  <!-- Row 1 subject blocks -->
+  <rect x="9"  y="30" width="8" height="6" rx="2" fill="#E53935" />
+  <rect x="19" y="30" width="8" height="6" rx="2" fill="#E53935" />
+  <rect x="29" y="30" width="8" height="6" rx="2" fill="#E53935" />
+  <rect x="39" y="30" width="8" height="6" rx="2" fill="#E53935" />
+  <rect x="49" y="30" width="6" height="6" rx="2" fill="#E53935" />
+
+  <!-- Row 2 subject blocks -->
+  <rect x="9"  y="39" width="8" height="6" rx="2" fill="#43A047" />
+  <rect x="19" y="39" width="8" height="6" rx="2" fill="#43A047" />
+  <rect x="29" y="39" width="8" height="6" rx="2" fill="#43A047" />
+  <rect x="39" y="39" width="8" height="6" rx="2" fill="#43A047" />
+  <rect x="49" y="39" width="6" height="6" rx="2" fill="#43A047" />
+
+  <!-- Row 3 subject blocks -->
+  <rect x="9"  y="48" width="8" height="6" rx="2" fill="#FB8C00" />
+  <rect x="19" y="48" width="8" height="6" rx="2" fill="#8E24AA" />
+  <rect x="29" y="48" width="8" height="6" rx="2" fill="#FB8C00" />
+  <rect x="39" y="48" width="8" height="6" rx="2" fill="#8E24AA" />
+  <rect x="49" y="48" width="6" height="6" rx="2" fill="#FB8C00" />
+
+  <!-- Outer border -->
+  <rect x="4" y="10" width="56" height="50" rx="6" ry="6"
+        fill="none" stroke="#C8D4E8" stroke-width="1" />
+
+</svg>
