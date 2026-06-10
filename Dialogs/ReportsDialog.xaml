@@ -1,0 +1,178 @@
+<Window x:Class="HomeschoolPlanner.Dialogs.ReportsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Generate Report"
+        Width="500" Height="680"
+        MinWidth="440" MinHeight="580"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource DialogBackgroundBrush}"
+        Loaded="OnLoaded">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="80"   />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*"    />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================================================ -->
+        <!-- Students label + select-all -->
+        <!-- ============================================================ -->
+        <Grid Grid.Row="0" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Students"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center" />
+            <TextBlock x:Name="SelectAllStudentsLink"
+                       Grid.Column="1"
+                       Text="Select all"
+                       Foreground="{DynamicResource AccentBrush}"
+                       Cursor="Hand"
+                       VerticalAlignment="Center"
+                       MouseLeftButtonUp="SelectAllStudentsLink_Click" />
+        </Grid>
+
+        <!-- ============================================================ -->
+        <!-- Students checklist -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="1"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="0,0,0,14">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                <WrapPanel x:Name="StudentPanel" Orientation="Horizontal" />
+            </ScrollViewer>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Subjects label + select-all -->
+        <!-- ============================================================ -->
+        <Grid Grid.Row="2" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Subjects"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center" />
+            <TextBlock x:Name="SelectAllSubjectsLink"
+                       Grid.Column="1"
+                       Text="Select all"
+                       Foreground="{DynamicResource AccentBrush}"
+                       Cursor="Hand"
+                       VerticalAlignment="Center"
+                       MouseLeftButtonUp="SelectAllSubjectsLink_Click" />
+        </Grid>
+
+        <!-- ============================================================ -->
+        <!-- Subjects checklist label row (shown when multiple students) -->
+        <!-- ============================================================ -->
+        <TextBlock x:Name="SubjectGroupHint"
+                   Grid.Row="3"
+                   Visibility="Collapsed"
+                   FontSize="10"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Margin="0,0,0,4"
+                   Text="Subjects grouped by student" />
+
+        <!-- ============================================================ -->
+        <!-- Subjects checklist -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="4"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="0,0,0,14">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                <StackPanel x:Name="SubjectPanel" />
+            </ScrollViewer>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Date range -->
+        <!-- ============================================================ -->
+        <StackPanel Grid.Row="5" Margin="0,0,0,14">
+            <TextBlock Text="Date Range"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,4" />
+            <StackPanel Orientation="Horizontal">
+                <DatePicker x:Name="StartPicker" Width="160" />
+                <TextBlock Text="to" Margin="10,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <DatePicker x:Name="EndPicker" Width="160" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ============================================================ -->
+        <!-- Report type -->
+        <!-- ============================================================ -->
+        <StackPanel Grid.Row="6" Margin="0,0,0,14">
+            <TextBlock Text="Report Type"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,6" />
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="SummaryRadio"
+                             Content="Subject Summary"
+                             GroupName="ReportType"
+                             IsChecked="True"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Margin="0,0,20,0" />
+                <RadioButton x:Name="LogRadio"
+                             Content="Daily Log"
+                             GroupName="ReportType"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ============================================================ -->
+        <!-- Export format -->
+        <!-- ============================================================ -->
+        <StackPanel Grid.Row="7" Margin="0,0,0,20">
+            <TextBlock Text="Export Format"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,6" />
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="PdfRadio"
+                             Content="PDF"
+                             GroupName="Format"
+                             IsChecked="True"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Margin="0,0,20,0" />
+                <RadioButton x:Name="CsvRadio"
+                             Content="CSV"
+                             GroupName="Format"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ============================================================ -->
+        <!-- Buttons -->
+        <!-- ============================================================ -->
+        <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel"
+                    Style="{DynamicResource NavButtonStyle}"
+                    Margin="0,0,8,0"
+                    Click="Cancel_Click" />
+            <Button Content="Generate Report"
+                    Style="{DynamicResource PrimaryButtonStyle}"
+                    Click="Generate_Click" />
+        </StackPanel>
+
+    </Grid>
+</Window>

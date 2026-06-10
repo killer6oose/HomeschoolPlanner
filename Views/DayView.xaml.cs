@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using HomeschoolPlanner.Data;
 using HomeschoolPlanner.Dialogs;
+using HomeschoolPlanner.Helpers;
 using HomeschoolPlanner.Models;
 
 namespace HomeschoolPlanner.Views;
@@ -15,6 +16,9 @@ public partial class DayView : UserControl
     private readonly DatabaseService _db;
     private List<Student> _students;
     private DateTime _currentDate;
+
+    // Tracks which subject cards are expanded: "{subjectId}"
+    private readonly HashSet<int> _expandedSubjects = new();
 
     public DayView(DatabaseService db, Student student) : this(db, new List<Student> { student }) { }
 
@@ -77,7 +81,7 @@ public partial class DayView : UserControl
                 {
                     Text               = multiStudent ? $"No classes scheduled for {student.Name} today." : "No classes scheduled for today.",
                     FontSize           = 13,
-                    Foreground         = new SolidColorBrush(Color.FromRgb(0x9A, 0xA3, 0xAF)),
+                    Foreground         = new SolidColorBrush(ThemeColors.TextSecondary),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Margin             = new Thickness(0, 10, 0, 16),
                     FontStyle          = FontStyles.Italic
@@ -87,8 +91,9 @@ public partial class DayView : UserControl
             {
                 foreach (var subject in daySubjects)
                 {
-                    var subjectColor = ParseHexColor(subject.Color);
+                    var subjectColor    = ParseHexColor(subject.Color);
                     entryMap.TryGetValue(subject.Id, out var entry);
+                    bool expanded       = _expandedSubjects.Contains(subject.Id);
 
                     var capturedSubject = subject;
                     var capturedStudent = student;
@@ -96,12 +101,11 @@ public partial class DayView : UserControl
 
                     var card = new Border
                     {
-                        Background      = Brushes.White,
-                        BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
+                        Background      = new SolidColorBrush(ThemeColors.Surface),
+                        BorderBrush     = new SolidColorBrush(ThemeColors.Border),
                         BorderThickness = new Thickness(1),
                         CornerRadius    = new CornerRadius(6),
-                        Margin          = new Thickness(0, 0, 0, 8),
-                        Cursor          = Cursors.Hand
+                        Margin          = new Thickness(0, 0, 0, 8)
                     };
 
                     var innerGrid = new Grid();
@@ -120,100 +124,158 @@ public partial class DayView : UserControl
 
                     // Content
                     var content = new StackPanel { Margin = new Thickness(12, 10, 12, 10) };
-                    content.Children.Add(new TextBlock
+
+                    // Header row: subject name + expand toggle
+                    var headerRow = new Grid();
+                    headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                    var nameBlock = new TextBlock
                     {
-                        Text       = subject.Name,
-                        FontSize   = 13,
-                        FontWeight = FontWeights.SemiBold,
-                        Foreground = new SolidColorBrush(subjectColor),
-                        Margin     = new Thickness(0, 0, 0, 3)
+                        Text              = subject.Name,
+                        FontSize          = 13,
+                        FontWeight        = FontWeights.SemiBold,
+                        Foreground        = new SolidColorBrush(subjectColor),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        TextDecorations   = entry?.IsComplete == true ? TextDecorations.Strikethrough : null
+                    };
+                    Grid.SetColumn(nameBlock, 0);
+                    headerRow.Children.Add(nameBlock);
+
+                    // Expand/collapse button
+                    var capturedId  = subject.Id;
+                    var expandLabel = expanded ? "▲" : "▼";
+                    var expandHint  = entry?.Items.Count > 0
+                        ? $"{entry.Items.Count} lesson{(entry.Items.Count == 1 ? "" : "s")}"
+                        : "";
+                    var expandPanel = new StackPanel
+                    {
+                        Orientation       = Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Cursor            = Cursors.Hand,
+                        Margin            = new Thickness(8, 0, 0, 0)
+                    };
+                    if (!string.IsNullOrEmpty(expandHint))
+                        expandPanel.Children.Add(new TextBlock
+                        {
+                            Text       = expandHint,
+                            FontSize   = 11,
+                            Foreground = new SolidColorBrush(ThemeColors.TextSecondary),
+                            Margin     = new Thickness(0, 0, 4, 0),
+                            VerticalAlignment = VerticalAlignment.Center
+                        });
+                    expandPanel.Children.Add(new TextBlock
+                    {
+                        Text       = expandLabel,
+                        FontSize   = 11,
+                        Foreground = new SolidColorBrush(ThemeColors.TextSecondary),
+                        VerticalAlignment = VerticalAlignment.Center
                     });
+                    expandPanel.MouseLeftButtonUp += (_, ev) =>
+                    {
+                        if (_expandedSubjects.Contains(capturedId)) _expandedSubjects.Remove(capturedId);
+                        else _expandedSubjects.Add(capturedId);
+                        ev.Handled = true;
+                        Render();
+                    };
+                    Grid.SetColumn(expandPanel, 1);
+                    headerRow.Children.Add(expandPanel);
 
-                    if (entry != null && !string.IsNullOrWhiteSpace(entry.Title))
-                    {
-                        content.Children.Add(new TextBlock
-                        {
-                            Text            = entry.Title,
-                            FontSize        = 13,
-                            Foreground      = new SolidColorBrush(Color.FromRgb(0x1C, 0x23, 0x33)),
-                            TextWrapping    = TextWrapping.Wrap,
-                            TextDecorations = entry.IsComplete ? TextDecorations.Strikethrough : null
-                        });
-                    }
-                    if (entry != null && !string.IsNullOrWhiteSpace(entry.Notes))
-                    {
-                        content.Children.Add(new TextBlock
-                        {
-                            Text         = entry.Notes,
-                            FontSize     = 12,
-                            Foreground   = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80)),
-                            TextWrapping = TextWrapping.Wrap,
-                            Margin       = new Thickness(0, 3, 0, 0)
-                        });
-                    }
-                    if (entry == null || (string.IsNullOrWhiteSpace(entry.Title) && string.IsNullOrWhiteSpace(entry.Notes)))
-                    {
-                        content.Children.Add(new TextBlock
-                        {
-                            Text      = "Click to add lesson notes",
-                            FontSize  = 12,
-                            Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xB0, 0xBB)),
-                            FontStyle = FontStyles.Italic
-                        });
-                    }
-                    Grid.SetColumn(content, 1);
-                    innerGrid.Children.Add(content);
-
-                    // Completion dot
-                    if (entry != null && !string.IsNullOrWhiteSpace(entry.Title))
-                    {
-                        var dotColor = entry.IsComplete
-                            ? Color.FromRgb(0x22, 0xC5, 0x5E)
-                            : Color.FromRgb(0xCC, 0xD0, 0xD8);
-                        var dot = new Border
-                        {
-                            Width               = 18,
-                            Height              = 18,
-                            CornerRadius        = new CornerRadius(9),
-                            Background          = new SolidColorBrush(dotColor),
-                            VerticalAlignment   = VerticalAlignment.Center,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Margin              = new Thickness(0, 0, 14, 0)
-                        };
-                        Grid.SetColumn(dot, 2);
-                        innerGrid.Children.Add(dot);
-                    }
-
-                    card.Child = innerGrid;
-                    card.MouseLeftButtonUp += (s, e) =>
+                    // Click the name row to open editor
+                    nameBlock.Cursor = Cursors.Hand;
+                    nameBlock.MouseLeftButtonUp += (_, ev) =>
                     {
                         var dlg = new LessonEditDialog(_db, capturedStudent, capturedSubject, _currentDate, capturedEntry);
                         dlg.Owner = Window.GetWindow(this);
-                        if (dlg.ShowDialog() == true)
-                            Render();
+                        if (dlg.ShowDialog() == true) Render();
+                        ev.Handled = true;
                     };
 
+                    content.Children.Add(headerRow);
+
+                    // Expanded content
+                    if (expanded)
+                    {
+                        if (entry?.Items.Count > 0)
+                        {
+                            foreach (var lessonItem in entry.Items)
+                            {
+                                content.Children.Add(new TextBlock
+                                {
+                                    Text            = $"• {lessonItem.Title}",
+                                    FontSize        = 12,
+                                    Foreground      = new SolidColorBrush(ThemeColors.TextPrimary),
+                                    TextWrapping    = TextWrapping.Wrap,
+                                    TextDecorations = lessonItem.IsComplete ? TextDecorations.Strikethrough : null,
+                                    Margin          = new Thickness(0, 3, 0, 1)
+                                });
+                                if (!string.IsNullOrWhiteSpace(lessonItem.SubTitle))
+                                    content.Children.Add(new TextBlock
+                                    {
+                                        Text         = $"    {lessonItem.SubTitle}",
+                                        FontSize     = 11,
+                                        Foreground   = new SolidColorBrush(ThemeColors.TextSecondary),
+                                        TextWrapping = TextWrapping.Wrap,
+                                        Margin       = new Thickness(0, 0, 0, 1)
+                                    });
+                            }
+                        }
+                        if (entry != null && !string.IsNullOrWhiteSpace(entry.Notes))
+                            content.Children.Add(new TextBlock
+                            {
+                                Text         = entry.Notes,
+                                FontSize     = 12,
+                                Foreground   = new SolidColorBrush(ThemeColors.TextSecondary),
+                                TextWrapping = TextWrapping.Wrap,
+                                FontStyle    = FontStyles.Italic,
+                                Margin       = new Thickness(0, 4, 0, 0)
+                            });
+                        if (entry == null || (entry.Items.Count == 0 && string.IsNullOrWhiteSpace(entry.Notes)))
+                            content.Children.Add(new TextBlock
+                            {
+                                Text      = "Click subject name to add lesson notes",
+                                FontSize  = 12,
+                                Foreground = new SolidColorBrush(ThemeColors.TextSecondary),
+                                FontStyle = FontStyles.Italic,
+                                Margin    = new Thickness(0, 4, 0, 0)
+                            });
+                    }
+
+                    Grid.SetColumn(content, 1);
+                    innerGrid.Children.Add(content);
+
+                    // Completion dot (visible in both states)
+                    var dotColor = entry?.IsComplete == true
+                        ? Color.FromRgb(0x22, 0xC5, 0x5E)
+                        : Color.FromRgb(0xCC, 0xD0, 0xD8);
+                    var dot = new Border
+                    {
+                        Width               = 14,
+                        Height              = 14,
+                        CornerRadius        = new CornerRadius(7),
+                        Background          = new SolidColorBrush(dotColor),
+                        VerticalAlignment   = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin              = new Thickness(0, 0, 14, 0)
+                    };
+                    Grid.SetColumn(dot, 2);
+                    innerGrid.Children.Add(dot);
+
+                    card.Child = innerGrid;
                     SubjectList.Children.Add(card);
                 }
             }
 
-            // "Add Class" link at the bottom of each student's section
-            var addLink = new Border
+            // "Add Subject" button at the bottom of each student's section
+            var capturedAddStudent = student;
+            var addBtn = new Button
             {
-                Cursor          = Cursors.Hand,
-                Padding         = new Thickness(0, 4, 0, 4),
-                Margin          = new Thickness(0, 0, 0, multiStudent ? 20 : 0)
-            };
-            var addText = new TextBlock
-            {
-                Text       = "+ Add Class to This Day",
-                FontSize   = 12,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x4A, 0x7C, 0xB5)),
+                Content             = "+ Add Subject to This Day",
+                Style               = (Style)Application.Current.Resources["PrimaryButtonStyle"],
+                Margin              = new Thickness(0, 8, 0, multiStudent ? 20 : 0),
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            addLink.Child = addText;
-            var capturedAddStudent = student;
-            addLink.MouseLeftButtonUp += (s, e) =>
+            addBtn.Click += (s, e) =>
             {
                 var allSubjects = _db.GetSubjects(capturedAddStudent.Id, activeOnly: false);
                 var dlg = new AddClassDialog(_db, capturedAddStudent, allSubjects, _currentDate);
@@ -221,7 +283,7 @@ public partial class DayView : UserControl
                 if (dlg.ShowDialog() == true)
                     Render();
             };
-            SubjectList.Children.Add(addLink);
+            SubjectList.Children.Add(addBtn);
         }
     }
 

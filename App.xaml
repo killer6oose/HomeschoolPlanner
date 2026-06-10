@@ -14,57 +14,111 @@
         <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#1C2333" />
         <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#6B7280" />
         <SolidColorBrush x:Key="CompletedGreenBrush" Color="#22C55E" />
+        <!-- Hover/press brushes for buttons - computed per-theme by ThemeManager -->
+        <SolidColorBrush x:Key="HoverBrush"          Color="#EEF2F8" />
+        <SolidColorBrush x:Key="PressedBrush"        Color="#DDE4EF" />
+        <!-- Pride-specific resources - overwritten by ThemeManager.Apply() -->
+        <SolidColorBrush x:Key="NavButtonBorderBrush" Color="#D8DCE6" />
+        <Visibility x:Key="PrideGradientVisibility">Collapsed</Visibility>
 
         <!-- Font resources - updated at runtime by ThemeManager -->
         <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
         <sys:Double x:Key="AppFontSize">13</sys:Double>
 
-        <!-- Global text style - picks up theme font -->
+        <!-- Global text style -->
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
             <Setter Property="FontSize"   Value="{DynamicResource AppFontSize}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         </Style>
+
+        <!-- TextBox - background and text from theme -->
         <Style TargetType="TextBox">
             <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
             <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
             <Setter Property="Padding"      Value="6,5" />
+            <Setter Property="Background"   Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="BorderBrush"  Value="{DynamicResource BorderBrush}" />
+            <Setter Property="CaretBrush"   Value="{DynamicResource TextPrimaryBrush}" />
         </Style>
+
+        <!-- ComboBox -->
         <Style TargetType="ComboBox">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
-            <Setter Property="FontSize"   Value="{DynamicResource AppFontSize}" />
-            <Setter Property="Padding"    Value="8,5" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-        </Style>
-        <Style TargetType="CheckBox">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
-            <Setter Property="FontSize"   Value="{DynamicResource AppFontSize}" />
-        </Style>
-        <Style TargetType="RadioButton">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
-            <Setter Property="FontSize"   Value="{DynamicResource AppFontSize}" />
-        </Style>
-        <Style TargetType="ListBox">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
-            <Setter Property="FontSize"   Value="{DynamicResource AppFontSize}" />
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Padding"     Value="8,5" />
+            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         </Style>
 
-        <!-- Nav/outline button -->
+        <!-- ComboBoxItem - so dropdown items use theme colors -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding"     Value="6,4" />
+        </Style>
+
+        <!-- CheckBox -->
+        <Style TargetType="CheckBox">
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <!-- RadioButton -->
+        <Style TargetType="RadioButton">
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <!-- ListBox -->
+        <Style TargetType="ListBox">
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+
+        <!-- ListBoxItem -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding"     Value="6,4" />
+        </Style>
+
+        <!-- MenuItem - so Menu dropdown items use theme colors -->
+        <Style TargetType="MenuItem">
+            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <!-- Nav/outline button.
+             In Pride theme ThemeManager sets NavButtonBorderBrush to a rainbow LinearGradientBrush,
+             giving every secondary button a rainbow outline automatically. -->
         <Style x:Key="NavButtonStyle" TargetType="Button">
-            <Setter Property="Background"   Value="Transparent" />
-            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush"  Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Background"      Value="Transparent" />
+            <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush"     Value="{DynamicResource NavButtonBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding"      Value="12,6" />
-            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
-            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
-            <Setter Property="Cursor"       Value="Hand" />
+            <Setter Property="Padding"         Value="12,6" />
+            <Setter Property="FontSize"        Value="{DynamicResource AppFontSize}" />
+            <Setter Property="FontFamily"      Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="Cursor"          Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4"
@@ -73,10 +127,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#EEF2F8" />
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#DDE4EF" />
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PressedBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -96,7 +150,11 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Primary filled button -->
+        <!-- Primary filled button.
+             In Pride theme a 200%-wide rainbow gradient (GradientBd) overlays the solid accent.
+             On hover it slides from showing the warm left half to the cool right half,
+             matching the CronoTech.org button effect. GradientBd is Collapsed for non-pride themes
+             so non-pride buttons behave normally and the animations are invisible. -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background"      Value="{DynamicResource AccentBrush}" />
             <Setter Property="Foreground"      Value="White" />
@@ -108,18 +166,66 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
+                        <Grid>
+                            <!-- Solid accent background (all themes) -->
+                            <Border x:Name="SolidBd"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="4" />
+                            <!-- Pride rainbow overlay: spans 200% width so StartPoint/EndPoint
+                                 animation reveals left half (warm) then right half (cool) on hover.
+                                 Collapsed in non-pride themes - animations still fire but are invisible. -->
+                            <Border x:Name="GradientBd"
+                                    Visibility="{DynamicResource PrideGradientVisibility}"
+                                    CornerRadius="4">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="2,0.5">
+                                        <GradientStop Color="#E05050" Offset="0.000" />
+                                        <GradientStop Color="#D4832A" Offset="0.167" />
+                                        <GradientStop Color="#A8A828" Offset="0.333" />
+                                        <GradientStop Color="#28A060" Offset="0.500" />
+                                        <GradientStop Color="#2864D0" Offset="0.667" />
+                                        <GradientStop Color="#8C28C8" Offset="0.833" />
+                                        <GradientStop Color="#E05050" Offset="1.000" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                            </Border>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Grid>
                         <ControlTemplate.Triggers>
+                            <!-- Non-pride hover/press: dim the solid bg -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+                                <Setter TargetName="SolidBd" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#2A5C95" />
+                                <Setter TargetName="SolidBd" Property="Background" Value="{DynamicResource PressedBrush}" />
                             </Trigger>
+                            <!-- Pride: slide gradient right on enter (warm -> cool half) -->
+                            <EventTrigger RoutedEvent="MouseEnter">
+                                <BeginStoryboard HandoffBehavior="SnapshotAndReplace">
+                                    <Storyboard>
+                                        <PointAnimation Storyboard.TargetName="GradientBd"
+                                                        Storyboard.TargetProperty="Background.StartPoint"
+                                                        To="-1,0.5" Duration="0:0:0.4" />
+                                        <PointAnimation Storyboard.TargetName="GradientBd"
+                                                        Storyboard.TargetProperty="Background.EndPoint"
+                                                        To="1,0.5" Duration="0:0:0.4" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <!-- Pride: slide back to warm half on leave -->
+                            <EventTrigger RoutedEvent="MouseLeave">
+                                <BeginStoryboard HandoffBehavior="SnapshotAndReplace">
+                                    <Storyboard FillBehavior="Stop">
+                                        <PointAnimation Storyboard.TargetName="GradientBd"
+                                                        Storyboard.TargetProperty="Background.StartPoint"
+                                                        To="0,0.5" Duration="0:0:0.3" />
+                                        <PointAnimation Storyboard.TargetName="GradientBd"
+                                                        Storyboard.TargetProperty="Background.EndPoint"
+                                                        To="2,0.5" Duration="0:0:0.3" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -128,17 +234,18 @@
 
         <!-- Lesson cell (clickable grid cell in WeekView) -->
         <Style x:Key="LessonCellStyle" TargetType="Button">
-            <Setter Property="Background"              Value="{DynamicResource SurfaceBrush}" />
-            <Setter Property="BorderBrush"             Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness"         Value="0,0,1,1" />
-            <Setter Property="Padding"                 Value="6,4" />
+            <Setter Property="Background"                 Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush"                Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness"            Value="0,0,1,1" />
+            <Setter Property="Padding"                    Value="6,4" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="VerticalContentAlignment"   Value="Top" />
-            <Setter Property="Cursor"                  Value="Hand" />
+            <Setter Property="Cursor"                     Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 Padding="{TemplateBinding Padding}">
@@ -147,7 +254,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0F4FB" />
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

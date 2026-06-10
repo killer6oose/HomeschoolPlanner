@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using HomeschoolPlanner.Data;
 using HomeschoolPlanner.Dialogs;
+using HomeschoolPlanner.Helpers;
 using HomeschoolPlanner.Models;
 using HomeschoolPlanner.Views;
 
@@ -30,10 +31,12 @@ public partial class MainWindow : Window
         InitializeComponent();
         // Defer student loading until after the window is shown - dialogs need
         // an already-visible owner window or WPF throws InvalidOperationException
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             LoadStudents();
             ShowView("Week");
+            // Fire update check after UI is up - runs in background, won't block startup
+            await UpdateChecker.CheckAsync(this);
         };
     }
 
@@ -58,6 +61,15 @@ public partial class MainWindow : Window
             dlg.Owner = this;
             dlg.ShowDialog();
             ReloadStudents();
+
+            // If they just created a student, prompt to add a subject right away
+            if (_selectedStudent != null)
+            {
+                var allSubjects = _db.GetSubjects(_selectedStudent.Id, activeOnly: false);
+                var subDlg = new AddClassDialog(_db, _selectedStudent, allSubjects, DateTime.Today);
+                subDlg.Owner = this;
+                subDlg.ShowDialog();
+            }
         }
     }
 
@@ -261,7 +273,7 @@ public partial class MainWindow : Window
 
     private void UpdateViewToggleStyles()
     {
-        var active = (Style)FindResource("ViewToggleActiveStyle");
+        var active = (Style)FindResource("PrimaryButtonStyle");
         var normal = (Style)FindResource("NavButtonStyle");
         DayViewBtn.Style   = _currentView == "Day"   ? active : normal;
         WeekViewBtn.Style  = _currentView == "Week"  ? active : normal;
@@ -326,10 +338,9 @@ public partial class MainWindow : Window
 
     private void SchoolSettings_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new SchoolSettingsDialog(_db) { Owner = this };
+        var dlg = new SchoolSettingsDialog(_db, 0) { Owner = this };
         if (dlg.ShowDialog() == true)
         {
-            // School days may have changed - rebuild week view columns
             InvalidateViews();
             RefreshCurrentView();
         }
@@ -338,6 +349,12 @@ public partial class MainWindow : Window
     private void Resources_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new ResourcesDialog(_db) { Owner = this };
+        dlg.ShowDialog();
+    }
+
+    private void Reports_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new ReportsDialog(_db) { Owner = this };
         dlg.ShowDialog();
     }
 

@@ -7,7 +7,7 @@ namespace HomeschoolPlanner.Dialogs;
 
 public partial class AboutDialog : Window
 {
-    private const string RepoUrl = "https://github.com/killer6oose/HomeschoolPlan";
+    private const string RepoUrl = "https://hsrc.thehattons.co";
 
     public AboutDialog()
     {
@@ -21,7 +21,7 @@ public partial class AboutDialog : Window
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
             ?? "1.0.0";
-        VersionLabel.Text = version;
+        VersionLabel.Text = version.Split('+')[0];
     }
 
     private void RepoLink_Click(object sender, MouseButtonEventArgs e)

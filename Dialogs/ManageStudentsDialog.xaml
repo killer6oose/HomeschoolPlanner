@@ -4,7 +4,7 @@
         Title="Manage Students"
         Width="480" Height="520"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource BackgroundBrush}">
+        Background="{DynamicResource DialogBackgroundBrush}">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>

@@ -5,7 +5,7 @@
         Width="540" Height="620"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{DynamicResource BackgroundBrush}">
+        Background="{DynamicResource DialogBackgroundBrush}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -26,6 +26,8 @@
                     <RadioButton x:Name="RadioDark"   Content="Dark"   GroupName="Theme"
                                  Checked="Theme_Changed" Margin="0,0,16,0" />
                     <RadioButton x:Name="RadioPride"  Content="Pride"  GroupName="Theme"
+                                 Checked="Theme_Changed" Margin="0,0,16,0" />
+                    <RadioButton x:Name="RadioCherry" Content="Cherry" GroupName="Theme"
                                  Checked="Theme_Changed" Margin="0,0,16,0" />
                     <RadioButton x:Name="RadioCustom" Content="Custom" GroupName="Theme"
                                  Checked="Theme_Changed" />
@@ -108,6 +110,20 @@
                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,10" />
                 <ComboBox x:Name="FontCombo" Width="260" HorizontalAlignment="Left"
                           Margin="0,0,0,16" SelectionChanged="Font_Changed" />
+
+                <Separator Margin="0,4,0,16" />
+
+                <!-- BEHAVIOR -->
+                <TextBlock Text="Behavior" FontSize="15" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,10" />
+                <CheckBox x:Name="ShowGradeTemplateCheck"
+                          Content="Ask about default subjects when creating a student in a grade"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          Margin="0,0,0,6" />
+                <TextBlock Text="When checked, adding a student to a grade that has a template will prompt to load those default subjects."
+                           FontSize="12" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="22,0,0,16" />
 
                 <Separator Margin="0,4,0,16" />
 

@@ -5,7 +5,7 @@
         Width="580" Height="660"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{DynamicResource BackgroundBrush}">
+        Background="{DynamicResource DialogBackgroundBrush}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -13,7 +13,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TabControl Grid.Row="0" Margin="16,12,16,4"
+        <TabControl x:Name="SchoolTabControl" Grid.Row="0" Margin="16,12,16,4"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}">
 
@@ -24,14 +24,34 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
 
-                        <!-- School Year Start -->
-                        <TextBlock Text="School Year Start"
+                        <!-- School Year -->
+                        <TextBlock Text="School Year"
                                    FontSize="15" FontWeight="Bold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    Margin="0,0,0,8" />
-                        <DatePicker x:Name="SchoolYearStartPicker"
-                                    Width="200" HorizontalAlignment="Left"
-                                    Margin="0,0,0,20" />
+                        <TextBlock Text="Used as the default date range for reports."
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,10" />
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Start Date" FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,0,0,4" />
+                                <DatePicker x:Name="SchoolYearStartPicker" Width="160" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="End Date" FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,0,0,4" />
+                                <DatePicker x:Name="SchoolYearEndPicker" Width="160" />
+                            </StackPanel>
+                        </Grid>
 
                         <Separator Margin="0,4,0,16" />
 
@@ -58,9 +78,9 @@
             </TabItem>
 
             <!-- ============================================================ -->
-            <!-- TAB 2: Class Library -->
+            <!-- TAB 2: Subject Library -->
             <!-- ============================================================ -->
-            <TabItem Header="Class Library">
+            <TabItem Header="Subject Library">
                 <Grid Margin="16,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -83,9 +103,10 @@
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="5" Padding="10,8"
                             Margin="0,0,0,12">
-                        <CheckBox x:Name="ChkTemplate"
-                                  Content="Use as default template for this grade (auto-loads when a student of this grade is created)"
-                                  TextWrapping="Wrap" />
+                        <CheckBox x:Name="ChkTemplate">
+                            <TextBlock Text="Use as default template for this grade (auto-loads when a student of this grade is created)"
+                                       TextWrapping="Wrap" />
+                        </CheckBox>
                     </Border>
 
                     <!-- Class list -->
@@ -101,7 +122,7 @@
                             Padding="12" Margin="0,10,0,0">
                         <StackPanel>
 
-                            <TextBlock x:Name="EditPanelTitle" Text="New Class"
+                            <TextBlock x:Name="EditPanelTitle" Text="New Subject"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        Margin="0,0,0,8" />
@@ -152,10 +173,10 @@
 
                             <!-- Action buttons -->
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <Button x:Name="SaveClassBtn" Content="Save"
+                                <Button x:Name="SaveClassBtn" Content="Save Subject"
                                         Style="{StaticResource PrimaryButtonStyle}"
                                         Margin="0,0,8,0" Click="SaveClass_Click" />
-                                <Button x:Name="DeleteClassBtn" Content="Delete"
+                                <Button x:Name="DeleteClassBtn" Content="Delete Subject"
                                         Style="{StaticResource NavButtonStyle}"
                                         Foreground="#CC2222" BorderBrush="#CC2222"
                                         Visibility="Collapsed"

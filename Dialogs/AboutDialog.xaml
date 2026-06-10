@@ -5,7 +5,7 @@
         Width="400" Height="300"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{DynamicResource BackgroundBrush}">
+        Background="{DynamicResource DialogBackgroundBrush}">
 
     <Grid Margin="30,24">
         <Grid.RowDefinitions>
@@ -46,7 +46,7 @@
                 <TextBlock Text="Source" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" />
                 <TextBlock x:Name="RepoLink" Grid.Column="1"
-                           Text="github.com/killer6oose/HomeschoolPlan"
+                           Text="hsrc.thehattons.co"
                            Foreground="{DynamicResource AccentBrush}"
                            Cursor="Hand"
                            TextDecorations="Underline"

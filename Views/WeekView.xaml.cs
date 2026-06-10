@@ -9,36 +9,22 @@ using HomeschoolPlanner.Models;
 
 namespace HomeschoolPlanner.Views;
 
-// Planbook-style week view.
-//
-// Layout:
-//   - One column per school day (configurable via School Settings)
-//   - Each column shows colored subject blocks stacked vertically
-//   - Only subjects whose schedule includes that day appear in that column
-//   - A "+" button at the bottom of each column opens the AddClassDialog
-//   - Clicking a subject block opens the LessonEditDialog
-//
-// Multi-student mode: pass multiple students to show columns grouped by student.
 public partial class WeekView : UserControl
 {
     private readonly DatabaseService _db;
     private List<Student> _students;
     private DateTime _weekStart;
 
-    // ISO day number (Mon=1...Sun=7) -> display name
+    // Tracks which subject blocks are expanded: "{subjectId}:{dateStr}"
+    private readonly HashSet<string> _expandedBlocks = new();
+
     private static readonly Dictionary<int, string> DayFullName = new()
     {
-        {1, "Monday"}, {2, "Tuesday"}, {3, "Wednesday"},
-        {4, "Thursday"}, {5, "Friday"}, {6, "Saturday"}, {7, "Sunday"}
-    };
-    private static readonly Dictionary<int, string> DayShortName = new()
-    {
-        {1, "Mon"}, {2, "Tue"}, {3, "Wed"},
-        {4, "Thu"}, {5, "Fri"}, {6, "Sat"}, {7, "Sun"}
+        {1,"Monday"},{2,"Tuesday"},{3,"Wednesday"},
+        {4,"Thursday"},{5,"Friday"},{6,"Saturday"},{7,"Sunday"}
     };
 
-    // Offset from Monday for each ISO day number
-    private static int DayOffset(int isoDay) => (isoDay - 1 + 7) % 7; // Mon=0, Tue=1, ... Sun=6
+    private static int DayOffset(int isoDay) => (isoDay - 1 + 7) % 7;
 
     public WeekView(DatabaseService db, Student student) : this(db, new List<Student> { student }) { }
 
@@ -63,25 +49,35 @@ public partial class WeekView : UserControl
 
     private void Render()
     {
-        // Read school days from settings (ISO: Mon=1...Sun=7)
         var schoolDays = AppState.Settings.SchoolDayNumbers;
-        if (schoolDays.Length == 0) schoolDays = new[] { 1, 2, 3, 4, 5 }; // fallback to Mon-Fri
+        if (schoolDays.Length == 0) schoolDays = new[] { 1, 2, 3, 4, 5 };
 
         bool multiStudent = _students.Count > 1;
 
-        // Pre-load all subjects and entries for the full 7-day week range
-        var allSubjects = _students.ToDictionary(
-            s => s.Id,
-            s => _db.GetSubjects(s.Id));
+        // Font sizes
+        double baseFs  = AppState.Settings.FontSizeValue;
+        double fsSmall = baseFs - 2;
+        double fsLarge = baseFs + 2;
 
-        var startStr = _weekStart.ToString("yyyy-MM-dd");
-        var endStr   = _weekStart.AddDays(6).ToString("yyyy-MM-dd"); // full week
-        var allEntries = _students.ToDictionary(
+        // Theme colors
+        var surfaceBrush  = ThemeColors.SurfaceBrush;
+        var borderBrush   = ThemeColors.BorderBrush;
+        var textPrimary   = ThemeColors.TextPrimaryBrush;
+        var textSecondary = ThemeColors.TextSecondaryBrush;
+        var accentBrush   = ThemeColors.AccentBrush;
+        var accentColor   = ThemeColors.Accent;
+        var todayHeaderBg = new SolidColorBrush(Color.FromArgb(30, accentColor.R, accentColor.G, accentColor.B));
+        var todayColBg    = new SolidColorBrush(Color.FromArgb(15, accentColor.R, accentColor.G, accentColor.B));
+
+        var allSubjects = _students.ToDictionary(s => s.Id, s => _db.GetSubjects(s.Id));
+        var startStr    = _weekStart.ToString("yyyy-MM-dd");
+        var endStr      = _weekStart.AddDays(6).ToString("yyyy-MM-dd");
+        var allEntries  = _students.ToDictionary(
             s => s.Id,
             s => _db.GetEntriesForRange(s.Id, startStr, endStr)
                     .ToDictionary(e => $"{e.SubjectId}:{e.LessonDate}", e => e));
 
-        // --- Build header row ---
+        // --- Header row ---
         HeaderRow.ColumnDefinitions.Clear();
         HeaderRow.Children.Clear();
 
@@ -90,45 +86,41 @@ public partial class WeekView : UserControl
         {
             var dayDate = _weekStart.AddDays(DayOffset(dayNum));
             var isToday = dayDate.Date == DateTime.Today;
+            bool prideToday = isToday && ThemeManager.IsPride;
 
             for (int si = 0; si < _students.Count; si++)
                 HeaderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var headerBorder = new Border
             {
-                Background      = isToday ? new SolidColorBrush(Color.FromRgb(0xEE, 0xF4, 0xFF)) : Brushes.White,
-                BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
-                BorderThickness = new Thickness(0, 0, 1, 1),
+                Background      = isToday ? todayHeaderBg : surfaceBrush,
+                // Pride + today: 2px rainbow border all around. Otherwise: normal right+bottom separator.
+                BorderBrush     = prideToday ? ThemeManager.BuildRainbowGradient() : borderBrush,
+                BorderThickness = prideToday ? new Thickness(2) : new Thickness(0, 0, 1, 1),
                 Padding         = new Thickness(10, 8, 10, 8)
             };
-
-            var headerContent = new StackPanel();
-            headerContent.Children.Add(new TextBlock
+            var hContent = new StackPanel();
+            hContent.Children.Add(new TextBlock
             {
                 Text       = DayFullName.GetValueOrDefault(dayNum, ""),
-                FontSize   = 11,
-                Foreground = isToday
-                    ? new SolidColorBrush(Color.FromRgb(0x4A, 0x7C, 0xB5))
-                    : new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80))
+                FontSize   = fsSmall,
+                Foreground = isToday ? accentBrush : textSecondary
             });
-            headerContent.Children.Add(new TextBlock
+            hContent.Children.Add(new TextBlock
             {
                 Text       = dayDate.ToString("MMM d"),
-                FontSize   = 15,
+                FontSize   = fsLarge,
                 FontWeight = isToday ? FontWeights.Bold : FontWeights.SemiBold,
-                Foreground = isToday
-                    ? new SolidColorBrush(Color.FromRgb(0x4A, 0x7C, 0xB5))
-                    : new SolidColorBrush(Color.FromRgb(0x1C, 0x23, 0x33))
+                Foreground = isToday ? accentBrush : textPrimary
             });
-            headerBorder.Child = headerContent;
-
+            headerBorder.Child = hContent;
             Grid.SetColumn(headerBorder, headerColIdx * _students.Count);
             Grid.SetColumnSpan(headerBorder, _students.Count);
             HeaderRow.Children.Add(headerBorder);
             headerColIdx++;
         }
 
-        // --- Build day columns ---
+        // --- Day columns ---
         DayColumnsGrid.ColumnDefinitions.Clear();
         DayColumnsGrid.Children.Clear();
         DayColumnsGrid.RowDefinitions.Clear();
@@ -148,101 +140,133 @@ public partial class WeekView : UserControl
                 var student  = _students[si];
                 var subjects = allSubjects[student.Id];
                 var entryMap = allEntries[student.Id];
-
-                // Subjects scheduled for this day
                 var daySubjects = subjects.Where(s => s.IsScheduledOn(dayDate)).ToList();
 
-                // Outer column border
                 var colBorder = new Border
                 {
-                    Background      = isToday ? new SolidColorBrush(Color.FromRgb(0xF8, 0xFB, 0xFF)) : Brushes.White,
-                    BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
+                    Background      = isToday ? todayColBg : surfaceBrush,
+                    BorderBrush     = borderBrush,
                     BorderThickness = new Thickness(0, 0, 1, 0)
                 };
-
                 var colStack = new StackPanel { Margin = new Thickness(6, 6, 6, 6) };
 
-                // Student sub-header in multi-student mode
+                // Student sub-header in multi-student mode (shows Name - Grade)
                 if (multiStudent)
                 {
-                    var studentColor = ParseHexColor(student.Color);
+                    var sc = ParseHexColor(student.Color);
+                    var gradeDisplay = GradeHelper.KeyToDisplay(student.Grade);
                     colStack.Children.Add(new Border
                     {
-                        Background   = new SolidColorBrush(studentColor) { Opacity = 0.15 },
+                        Background   = new SolidColorBrush(sc) { Opacity = 0.15 },
                         CornerRadius = new CornerRadius(4),
                         Padding      = new Thickness(6, 3, 6, 3),
                         Margin       = new Thickness(0, 0, 0, 6),
                         Child        = new TextBlock
                         {
-                            Text       = student.Name,
-                            FontSize   = 11,
+                            Text       = $"{student.Name} - {gradeDisplay}",
+                            FontSize   = fsSmall,
                             FontWeight = FontWeights.SemiBold,
-                            Foreground = new SolidColorBrush(studentColor)
+                            Foreground = new SolidColorBrush(sc)
                         }
                     });
                 }
 
-                // Subject blocks
                 foreach (var subject in daySubjects)
                 {
                     var subjectColor = ParseHexColor(subject.Color);
-                    var key = $"{subject.Id}:{dateStr}";
-                    entryMap.TryGetValue(key, out var entry);
+                    var blockKey     = $"{subject.Id}:{dateStr}";
+                    entryMap.TryGetValue(blockKey, out var entry);
+                    bool expanded = _expandedBlocks.Contains(blockKey);
 
-                    var capturedSubject = subject;
-                    var capturedStudent = student;
-                    var capturedEntry   = entry;
-                    var capturedDate    = dayDate;
+                    var cap_subject = subject;
+                    var cap_student = student;
+                    var cap_entry   = entry;
+                    var cap_date    = dayDate;
+                    var cap_key     = blockKey;
 
-                    var block = BuildSubjectBlock(subject, entry, subjectColor);
-                    block.Margin = new Thickness(0, 0, 0, 4);
-                    block.Cursor = Cursors.Hand;
-                    block.MouseLeftButtonUp += (s, e) =>
-                    {
-                        var dlg = new LessonEditDialog(_db, capturedStudent, capturedSubject, capturedDate, capturedEntry);
-                        dlg.Owner = Window.GetWindow(this);
-                        if (dlg.ShowDialog() == true)
+                    var block = BuildSubjectBlock(
+                        subject, entry, subjectColor, expanded,
+                        baseFs, fsSmall,
+                        // toggle expand
+                        () =>
+                        {
+                            if (_expandedBlocks.Contains(cap_key)) _expandedBlocks.Remove(cap_key);
+                            else _expandedBlocks.Add(cap_key);
                             Render();
-                        e.Handled = true;
-                    };
+                        },
+                        // mark all complete
+                        () =>
+                        {
+                            var e2 = cap_entry ?? _db.EnsureEntry(cap_subject.Id, cap_student.Id, cap_date.ToString("yyyy-MM-dd"));
+                            _db.SetEntryComplete(e2.Id, !e2.IsComplete);
+                            Render();
+                        },
+                        // delete this occurrence
+                        () =>
+                        {
+                            var res = MessageBox.Show(
+                                $"Remove '{cap_subject.Name}' on {cap_date:MMM d}?\n\nYes = this date only\nNo = remove subject entirely",
+                                "Remove Subject",
+                                MessageBoxButton.YesNoCancel,
+                                MessageBoxImage.Question);
+                            if (res == MessageBoxResult.Yes)
+                            {
+                                _db.AddExcludedDate(cap_subject, cap_date.ToString("yyyy-MM-dd"));
+                                if (cap_entry != null) _db.DeleteEntry(cap_entry.Id);
+                                Render();
+                            }
+                            else if (res == MessageBoxResult.No)
+                            {
+                                _db.DeleteSubject(cap_subject.Id);
+                                Render();
+                            }
+                        },
+                        // mark single item complete
+                        (itemId, nowComplete) =>
+                        {
+                            _db.SetLessonItemComplete(itemId, nowComplete);
+                            Render();
+                        },
+                        // open lesson editor
+                        () =>
+                        {
+                            var freshEntry = _db.GetEntry(cap_subject.Id, cap_student.Id, cap_date.ToString("yyyy-MM-dd"));
+                            var dlg = new LessonEditDialog(_db, cap_student, cap_subject, cap_date, freshEntry);
+                            dlg.Owner = Window.GetWindow(this);
+                            if (dlg.ShowDialog() == true) Render();
+                        });
 
+                    block.Margin = new Thickness(0, 0, 0, 4);
                     colStack.Children.Add(block);
                 }
 
-                // "+" Add Class button at the bottom of each column
+                // "+ Add Subject" button
                 var addBtn = new Border
                 {
-                    BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
+                    BorderBrush     = borderBrush,
                     BorderThickness = new Thickness(1),
                     CornerRadius    = new CornerRadius(4),
-                    Padding         = new Thickness(0, 6, 0, 6),
+                    Padding         = new Thickness(0, 5, 0, 5),
                     Cursor          = Cursors.Hand,
                     Margin          = new Thickness(0, 4, 0, 0),
                     Background      = Brushes.Transparent
                 };
                 addBtn.Child = new TextBlock
                 {
-                    Text               = "+ Add Class",
-                    FontSize           = 12,
-                    Foreground         = new SolidColorBrush(Color.FromRgb(0x9A, 0xA3, 0xAF)),
+                    Text                = "+ Add Subject",
+                    FontSize            = fsSmall,
+                    Foreground          = textSecondary,
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
-
-                var capturedAddStudent = student;
-                var capturedAddDate    = dayDate;
-                addBtn.MouseLeftButtonUp += (s, e) =>
-                {
-                    OnAddClass(capturedAddStudent, capturedAddDate);
-                    e.Handled = true;
-                };
+                var cap_addStudent = student;
+                var cap_addDate    = dayDate;
+                addBtn.MouseLeftButtonUp += (s, e) => { OnAddSubject(cap_addStudent, cap_addDate); e.Handled = true; };
                 addBtn.MouseEnter += (s, e) =>
-                    ((Border)s).Background = new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xFB));
-                addBtn.MouseLeave += (s, e) =>
-                    ((Border)s).Background = Brushes.Transparent;
+                    ((Border)s).Background = new SolidColorBrush(Color.FromArgb(20, accentColor.R, accentColor.G, accentColor.B));
+                addBtn.MouseLeave += (s, e) => ((Border)s).Background = Brushes.Transparent;
 
                 colStack.Children.Add(addBtn);
                 colBorder.Child = colStack;
-
                 Grid.SetColumn(colBorder, colIndex);
                 DayColumnsGrid.Children.Add(colBorder);
                 colIndex++;
@@ -250,77 +274,198 @@ public partial class WeekView : UserControl
         }
     }
 
-    // Builds a single colored subject block (like the colored pills in Planbook)
-    private static Border BuildSubjectBlock(Subject subject, LessonEntry? entry, Color subjectColor)
+    private static Border BuildSubjectBlock(
+        Subject subject,
+        LessonEntry? entry,
+        Color subjectColor,
+        bool expanded,
+        double baseFs,
+        double fsSmall,
+        Action onToggleExpand,
+        Action onToggleComplete,
+        Action onDeleteOccurrence,
+        Action<int, bool> onItemComplete,
+        Action onOpenEditor)
     {
+        var textColor = PickTextColor(subjectColor);
+        var dimColor  = textColor is SolidColorBrush b
+            ? new SolidColorBrush(Color.FromArgb(0xBB, b.Color.R, b.Color.G, b.Color.B))
+            : textColor;
+
+        bool blockDone = entry?.IsComplete == true;
+
         var block = new Border
         {
             Background   = new SolidColorBrush(subjectColor),
             CornerRadius = new CornerRadius(4),
-            Padding      = new Thickness(10, 7, 10, 7),
-            MinHeight    = 36
+            Padding      = new Thickness(8, 6, 8, 6),
+            MinHeight    = 34
         };
 
-        var panel = new StackPanel();
+        var outer = new StackPanel();
 
-        // Subject name
+        // ---- Top row: subject name + action buttons ----
+        var topRow = new Grid();
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
         var nameText = new TextBlock
         {
-            Text         = subject.Name,
-            FontSize     = 13,
-            FontWeight   = FontWeights.SemiBold,
-            Foreground   = PickTextColor(subjectColor),
-            TextWrapping = TextWrapping.Wrap
+            Text                = subject.Name,
+            FontSize            = baseFs,
+            FontWeight          = FontWeights.SemiBold,
+            Foreground          = textColor,
+            TextWrapping        = TextWrapping.Wrap,
+            TextDecorations     = blockDone ? TextDecorations.Strikethrough : null,
+            VerticalAlignment   = VerticalAlignment.Center
         };
-        panel.Children.Add(nameText);
+        Grid.SetColumn(nameText, 0);
+        topRow.Children.Add(nameText);
 
-        // Lesson title (if any content exists)
-        if (entry != null && !string.IsNullOrWhiteSpace(entry.Title))
+        // Action buttons (✓ delete expand)
+        var btnPanel = new StackPanel
         {
-            var titleText = new TextBlock
+            Orientation       = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin            = new Thickness(4, 0, 0, 0)
+        };
+
+        // Check/uncheck whole block
+        var checkBtn = MakeIconButton(blockDone ? "✓" : "○", textColor, fsSmall, onToggleComplete);
+        checkBtn.ToolTip = blockDone ? "Mark incomplete" : "Mark complete";
+        btnPanel.Children.Add(checkBtn);
+
+        // Delete occurrence
+        var delBtn = MakeIconButton("✕", textColor, fsSmall, onDeleteOccurrence);
+        delBtn.ToolTip = "Remove from this day";
+        btnPanel.Children.Add(delBtn);
+
+        // Expand/collapse toggle
+        var expandBtn = MakeIconButton(expanded ? "▲" : "▼", textColor, fsSmall, onToggleExpand);
+        expandBtn.ToolTip = expanded ? "Collapse" : "Expand lessons";
+        btnPanel.Children.Add(expandBtn);
+
+        Grid.SetColumn(btnPanel, 1);
+        topRow.Children.Add(btnPanel);
+
+        outer.Children.Add(topRow);
+
+        // ---- Click on the name area opens the editor ----
+        topRow.Cursor = Cursors.Hand;
+        nameText.MouseLeftButtonUp += (_, e) => { onOpenEditor(); e.Handled = true; };
+
+        // ---- Lesson items ----
+        var items = entry?.Items ?? new List<LessonItem>();
+
+        if (!expanded)
+        {
+            // Collapsed: name row only - no lesson preview
+            // Show a subtle item count hint if there are lessons
+            if (items.Count > 0)
+                outer.Children.Add(new TextBlock
+                {
+                    Text       = $"{items.Count} lesson{(items.Count == 1 ? "" : "s")}",
+                    FontSize   = fsSmall - 1,
+                    Foreground = dimColor,
+                    Margin     = new Thickness(0, 2, 0, 0)
+                });
+        }
+        else
+        {
+            // Expanded: each lesson with its subtitle, check and remove buttons
+            foreach (var item in items)
             {
-                Text            = entry.Title,
-                FontSize        = 11,
-                Foreground      = PickTextColor(subjectColor) is SolidColorBrush b
-                    ? new SolidColorBrush(Color.FromArgb(0xCC, b.Color.R, b.Color.G, b.Color.B))
-                    : Brushes.White,
-                TextWrapping    = TextWrapping.Wrap,
-                Margin          = new Thickness(0, 2, 0, 0),
-                TextDecorations = entry.IsComplete ? TextDecorations.Strikethrough : null
-            };
-            panel.Children.Add(titleText);
+                var cap_item = item;
+                var itemPanel = new Grid { Margin = new Thickness(0, 3, 0, 0) };
+                itemPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                itemPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var itemText = new StackPanel();
+                itemText.Children.Add(new TextBlock
+                {
+                    Text            = $"• {item.Title}",
+                    FontSize        = fsSmall,
+                    Foreground      = textColor,
+                    TextWrapping    = TextWrapping.Wrap,
+                    FontWeight      = FontWeights.Medium,
+                    TextDecorations = item.IsComplete ? TextDecorations.Strikethrough : null
+                });
+                if (!string.IsNullOrWhiteSpace(item.SubTitle))
+                    itemText.Children.Add(new TextBlock
+                    {
+                        Text         = $"    {item.SubTitle}",
+                        FontSize     = Math.Max(9, fsSmall - 1),
+                        Foreground   = dimColor,
+                        TextWrapping = TextWrapping.Wrap,
+                        TextDecorations = item.IsComplete ? TextDecorations.Strikethrough : null
+                    });
+                Grid.SetColumn(itemText, 0);
+                itemPanel.Children.Add(itemText);
+
+                // Per-item check + remove
+                var itemBtns = new StackPanel { Orientation = Orientation.Horizontal };
+                var itemCheck = MakeIconButton(item.IsComplete ? "✓" : "○", dimColor, Math.Max(9, fsSmall - 1),
+                    () => onItemComplete(cap_item.Id, !cap_item.IsComplete));
+                var itemDel = MakeIconButton("✕", dimColor, Math.Max(9, fsSmall - 1), () =>
+                {
+                    // Remove just this item: reload entry and re-save without this item
+                    // We'll handle via the editor for now - just open editor
+                    onOpenEditor();
+                });
+                itemBtns.Children.Add(itemCheck);
+                itemBtns.Children.Add(itemDel);
+                Grid.SetColumn(itemBtns, 1);
+                itemPanel.Children.Add(itemBtns);
+
+                outer.Children.Add(itemPanel);
+            }
+
+            // Notes preview
+            if (!string.IsNullOrWhiteSpace(entry?.Notes))
+                outer.Children.Add(new TextBlock
+                {
+                    Text            = entry.Notes,
+                    FontSize        = fsSmall,
+                    Foreground      = dimColor,
+                    TextWrapping    = TextWrapping.Wrap,
+                    Margin          = new Thickness(0, 4, 0, 0),
+                    FontStyle       = FontStyles.Italic
+                });
         }
 
-        // Small checkmark if complete
-        if (entry?.IsComplete == true)
-        {
-            panel.Children.Add(new TextBlock
-            {
-                Text     = "✓ Done",
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Colors.White) { Opacity = 0.85 },
-                Margin   = new Thickness(0, 2, 0, 0)
-            });
-        }
-
-        block.Child = panel;
+        block.Child = outer;
         return block;
     }
 
-    private void OnAddClass(Student student, DateTime date)
+    private static TextBlock MakeIconButton(string text, Brush foreground, double fontSize, Action onClick)
+    {
+        var tb = new TextBlock
+        {
+            Text      = text,
+            FontSize  = fontSize,
+            Foreground = foreground,
+            Margin    = new Thickness(3, 0, 0, 0),
+            Cursor    = Cursors.Hand,
+            Padding   = new Thickness(2, 0, 2, 0)
+        };
+        tb.MouseLeftButtonUp += (_, e) => { onClick(); e.Handled = true; };
+        tb.MouseEnter += (_, _) => tb.Opacity = 0.7;
+        tb.MouseLeave += (_, _) => tb.Opacity = 1.0;
+        return tb;
+    }
+
+    private void OnAddSubject(Student student, DateTime date)
     {
         var subjects = _db.GetSubjects(student.Id, activeOnly: false);
         var dlg = new AddClassDialog(_db, student, subjects, date);
         dlg.Owner = Window.GetWindow(this);
-        if (dlg.ShowDialog() == true)
-            Render();
+        if (dlg.ShowDialog() == true) Render();
     }
 
-    // Pick white or dark text depending on background luminance
     private static Brush PickTextColor(Color bg)
     {
-        double luminance = (0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B) / 255;
-        return luminance > 0.55
+        double lum = (0.299 * bg.R + 0.587 * bg.G + 0.114 * bg.B) / 255;
+        return lum > 0.55
             ? new SolidColorBrush(Color.FromRgb(0x1C, 0x23, 0x33))
             : Brushes.White;
     }
@@ -331,12 +476,10 @@ public partial class WeekView : UserControl
         {
             hex = hex.TrimStart('#');
             if (hex.Length == 6)
-            {
-                byte r = Convert.ToByte(hex.Substring(0, 2), 16);
-                byte g = Convert.ToByte(hex.Substring(2, 2), 16);
-                byte b = Convert.ToByte(hex.Substring(4, 2), 16);
-                return Color.FromRgb(r, g, b);
-            }
+                return Color.FromRgb(
+                    Convert.ToByte(hex[..2], 16),
+                    Convert.ToByte(hex[2..4], 16),
+                    Convert.ToByte(hex[4..], 16));
         }
         catch { }
         return Color.FromRgb(0x4A, 0x7C, 0xB5);

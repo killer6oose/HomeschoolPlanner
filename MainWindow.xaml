@@ -3,119 +3,132 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Homeschool Planner"
         Height="780" Width="1200"
-        MinHeight="600" MinWidth="900"
+        MinHeight="600" MinWidth="800"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{DynamicResource BackgroundBrush}">
 
     <DockPanel>
 
+        <!-- ============================================================ -->
         <!-- Menu bar -->
+        <!-- ============================================================ -->
         <Menu DockPanel.Dock="Top"
               Background="{DynamicResource SurfaceBrush}"
+              Foreground="{DynamicResource TextPrimaryBrush}"
               BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="0,0,0,1">
-            <MenuItem Header="File">
+            <MenuItem Header="File" Foreground="{DynamicResource TextPrimaryBrush}">
                 <MenuItem Header="Preferences" Click="Preferences_Click" />
                 <Separator />
                 <MenuItem Header="About" Click="About_Click" />
             </MenuItem>
+            <MenuItem Header="School Settings" Foreground="{DynamicResource TextPrimaryBrush}"
+                      Click="SchoolSettings_Click" />
+            <MenuItem Header="Resources" Foreground="{DynamicResource TextPrimaryBrush}"
+                      Click="Resources_Click" />
+            <MenuItem Header="Reports" Foreground="{DynamicResource TextPrimaryBrush}"
+                      Click="Reports_Click" />
         </Menu>
 
-        <!-- Top toolbar -->
+        <!-- ============================================================ -->
+        <!-- Row 1: Student selector + management buttons -->
+        <!-- ============================================================ -->
         <Border DockPanel.Dock="Top"
-                Background="White"
-                BorderBrush="{StaticResource BorderBrush}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="12,8">
+                Padding="10,6">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- Single-student mode -->
+                <StackPanel x:Name="SingleStudentPanel" Orientation="Horizontal">
+                    <TextBlock Text="Student:" VerticalAlignment="Center" Margin="0,0,6,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <ComboBox x:Name="StudentCombo"
+                              Width="150"
+                              DisplayMemberPath="Name"
+                              SelectionChanged="StudentCombo_SelectionChanged" />
+                </StackPanel>
+
+                <!-- Split-view mode label -->
+                <StackPanel x:Name="SplitViewPanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="Viewing:" VerticalAlignment="Center" Margin="0,0,6,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <TextBlock x:Name="SplitStudentLabel"
+                               VerticalAlignment="Center" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+
+                <Button x:Name="SplitViewBtn" Content="Split View"
+                        Style="{DynamicResource NavButtonStyle}"
+                        Margin="8,0,0,0"
+                        ToolTip="View multiple students side by side"
+                        Click="SplitView_Click" />
+
+                <Button Content="Students"
+                        Style="{DynamicResource NavButtonStyle}"
+                        Margin="6,0,0,0"
+                        Click="ManageStudents_Click" />
+
+                <Button Content="Subjects"
+                        Style="{DynamicResource NavButtonStyle}"
+                        Margin="6,0,0,0"
+                        Click="ManageSubjects_Click" />
+
+
+            </StackPanel>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 2: Date navigation + view toggles -->
+        <!-- ============================================================ -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="10,5">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Left: Student controls -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-
-                    <!-- Single-student mode: dropdown -->
-                    <StackPanel x:Name="SingleStudentPanel" Orientation="Horizontal">
-                        <TextBlock Text="Student:" VerticalAlignment="Center" Margin="0,0,6,0"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
-                        <ComboBox x:Name="StudentCombo"
-                                  Width="160"
-                                  DisplayMemberPath="Name"
-                                  SelectionChanged="StudentCombo_SelectionChanged" />
-                    </StackPanel>
-
-                    <!-- Split-view mode: label showing selected students -->
-                    <StackPanel x:Name="SplitViewPanel" Orientation="Horizontal" Visibility="Collapsed">
-                        <TextBlock Text="Viewing:" VerticalAlignment="Center" Margin="0,0,6,0"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
-                        <TextBlock x:Name="SplitStudentLabel"
-                                   VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                    </StackPanel>
-
-                    <!-- Student management buttons -->
-                    <Button Content="Split View"
-                            x:Name="SplitViewBtn"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="8,0,0,0"
-                            ToolTip="View multiple students side by side"
-                            Click="SplitView_Click" />
-                    <Button Content="Manage"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="6,0,0,0"
-                            Click="ManageStudents_Click" />
-                    <Button Content="Subjects"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="6,0,0,0"
-                            Click="ManageSubjects_Click" />
-                    <Button Content="School Settings"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="6,0,0,0"
-                            Click="SchoolSettings_Click" />
-                    <Button Content="Resources"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="6,0,0,0"
-                            Click="Resources_Click" />
-                </StackPanel>
-
                 <!-- Center: Date navigation -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                <StackPanel Grid.Column="0" Orientation="Horizontal"
                             HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Content="&#8592;" Style="{StaticResource NavButtonStyle}"
+                    <Button Content="&#8592;" Style="{DynamicResource NavButtonStyle}"
                             Width="32" Click="PrevPeriod_Click" />
                     <Button Content="Today"
-                            Style="{StaticResource NavButtonStyle}"
+                            Style="{DynamicResource NavButtonStyle}"
                             Margin="6,0"
                             Click="Today_Click" />
                     <TextBlock x:Name="PeriodLabel"
                                VerticalAlignment="Center"
-                               FontSize="15" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="{DynamicResource AppFontSize}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
                                Margin="8,0"
-                               MinWidth="200"
+                               MinWidth="220"
                                TextAlignment="Center" />
-                    <Button Content="&#8594;" Style="{StaticResource NavButtonStyle}"
+                    <Button Content="&#8594;" Style="{DynamicResource NavButtonStyle}"
                             Width="32" Click="NextPeriod_Click" />
                 </StackPanel>
 
                 <!-- Right: View toggles -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="DayViewBtn"
                             Content="Day"
-                            Style="{StaticResource NavButtonStyle}"
+                            Style="{DynamicResource NavButtonStyle}"
                             Click="SwitchView_Click" Tag="Day"
                             Margin="0,0,4,0" />
                     <Button x:Name="WeekViewBtn"
                             Content="Week"
-                            Style="{StaticResource ViewToggleActiveStyle}"
+                            Style="{DynamicResource PrimaryButtonStyle}"
                             Click="SwitchView_Click" Tag="Week"
                             Margin="0,0,4,0" />
                     <Button x:Name="MonthViewBtn"
                             Content="Month"
-                            Style="{StaticResource NavButtonStyle}"
+                            Style="{DynamicResource NavButtonStyle}"
                             Click="SwitchView_Click" Tag="Month" />
                 </StackPanel>
             </Grid>

@@ -12,7 +12,10 @@ public class DatabaseService
 
     public DatabaseService()
     {
-        var folder = AppDomain.CurrentDomain.BaseDirectory;
+        var folder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "HomeschoolPlanner");
+        Directory.CreateDirectory(folder); // no-op if it already exists
         var dbPath = Path.Combine(folder, "homeschool.db");
         _connectionString = $"Data Source={dbPath}";
         InitializeSchema();
@@ -79,15 +82,117 @@ public class DatabaseService
                 FOREIGN KEY (SubjectId) REFERENCES Subjects(Id),
                 FOREIGN KEY (StudentId) REFERENCES Students(Id)
             );
+
+            CREATE TABLE IF NOT EXISTS LessonItems (
+                Id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                LessonEntryId  INTEGER NOT NULL,
+                Title          TEXT NOT NULL DEFAULT '',
+                SubTitle       TEXT NOT NULL DEFAULT '',
+                SortOrder      INTEGER NOT NULL DEFAULT 0,
+                IsComplete     INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (LessonEntryId) REFERENCES LessonEntries(Id)
+            );
         ";
 
         using var cmd = new SqliteCommand(sql, conn);
         cmd.ExecuteNonQuery();
 
-        // Safe migration: add schedule columns if upgrading from an older schema
-        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleType",  "TEXT NOT NULL DEFAULT 'None'");
-        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleDays",  "TEXT NOT NULL DEFAULT ''");
-        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleDates", "TEXT NOT NULL DEFAULT ''");
+        // Safe migration: add columns that may be missing from older schema
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleType",     "TEXT NOT NULL DEFAULT 'None'");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleDays",     "TEXT NOT NULL DEFAULT ''");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleDates",    "TEXT NOT NULL DEFAULT ''");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleMonthly",  "TEXT NOT NULL DEFAULT ''");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleEndType",  "TEXT NOT NULL DEFAULT 'None'");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleEndDate",  "TEXT NOT NULL DEFAULT ''");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ScheduleEndCount", "INTEGER NOT NULL DEFAULT 0");
+        MigrateAddColumnIfMissing(conn, "Subjects", "ExcludedDates",    "TEXT NOT NULL DEFAULT ''");
+        // Migrate old single-title lessons to LessonItems
+        MigrateLessonTitlesToItems(conn);
+
+        SeedDefaultTemplates(conn);
+    }
+
+    // Inserts default class templates for each grade if that grade has no entries yet.
+    // Safe to call repeatedly - only inserts when the grade has zero rows.
+    private static void SeedDefaultTemplates(SqliteConnection conn)
+    {
+        // Colors cycle through a tasteful palette
+        var colors = new[]
+        {
+            "#5B9AD5","#E06C75","#98C379","#E5C07B",
+            "#C678DD","#56B6C2","#D19A66","#61AFEF"
+        };
+
+        static string C(int i, string[] palette) => palette[i % palette.Length];
+
+        var preK = new[] {
+            "Art", "Music", "Physical Education", "Fitness and Health",
+            "Phonics", "Motor Skills"
+        };
+
+        var k5 = new[] {
+            "English / Language Arts", "Math", "Science", "Social Studies",
+            "Art", "Music", "Physical Education", "Fitness and Health",
+            "Phonics", "Technology & Digital Literacy", "Handwriting", "Reading"
+        };
+
+        var templates = new Dictionary<string, string[]>
+        {
+            ["PreK"] = preK,
+            ["K"]    = k5,
+            ["1"]    = k5,
+            ["2"]    = k5,
+            ["3"]    = k5,
+            ["4"]    = k5,
+            ["5"]    = k5,
+        };
+
+        foreach (var (grade, classes) in templates)
+        {
+            // Only seed if this grade has no entries at all
+            using var countCmd = new SqliteCommand(
+                "SELECT COUNT(*) FROM GradeClasses WHERE GradeKey = @g", conn);
+            countCmd.Parameters.AddWithValue("@g", grade);
+            var count = Convert.ToInt32(countCmd.ExecuteScalar());
+            if (count > 0) continue;
+
+            for (int i = 0; i < classes.Length; i++)
+            {
+                using var ins = new SqliteCommand(@"
+                    INSERT INTO GradeClasses (GradeKey, Name, Color, ScheduleType, ScheduleDays)
+                    VALUES (@g, @name, @color, 'EveryDay', '')", conn);
+                ins.Parameters.AddWithValue("@g",     grade);
+                ins.Parameters.AddWithValue("@name",  classes[i]);
+                ins.Parameters.AddWithValue("@color", C(i, colors));
+                ins.ExecuteNonQuery();
+            }
+        }
+    }
+
+    // For each LessonEntry with a non-empty Title but no LessonItems yet, create a LessonItem from that title.
+    private static void MigrateLessonTitlesToItems(SqliteConnection conn)
+    {
+        using var find = new SqliteCommand(@"
+            SELECT le.Id, le.Title
+            FROM   LessonEntries le
+            WHERE  le.Title != ''
+            AND    NOT EXISTS (SELECT 1 FROM LessonItems li WHERE li.LessonEntryId = le.Id)",
+            conn);
+        using var reader = find.ExecuteReader();
+        var toMigrate = new List<(long id, string title)>();
+        while (reader.Read())
+            toMigrate.Add((reader.GetInt64(0), reader.GetString(1)));
+        reader.Close();
+
+        foreach (var (id, title) in toMigrate)
+        {
+            using var ins = new SqliteCommand(@"
+                INSERT INTO LessonItems (LessonEntryId, Title, SubTitle, SortOrder, IsComplete)
+                VALUES (@eid, @t, '', 0, 0)", conn);
+            ins.Parameters.AddWithValue("@eid", id);
+            ins.Parameters.AddWithValue("@t",   title);
+            ins.ExecuteNonQuery();
+        }
     }
 
     private static void MigrateAddColumnIfMissing(SqliteConnection conn, string table, string column, string definition)
@@ -193,7 +298,9 @@ public class DatabaseService
 
         var where = activeOnly ? "AND IsActive = 1" : "";
         using var cmd = new SqliteCommand(
-            $@"SELECT Id, StudentId, Name, Color, SortOrder, IsActive, ScheduleType, ScheduleDays, ScheduleDates
+            $@"SELECT Id, StudentId, Name, Color, SortOrder, IsActive,
+                      ScheduleType, ScheduleDays, ScheduleDates, ScheduleMonthly,
+                      ScheduleEndType, ScheduleEndDate, ScheduleEndCount, ExcludedDates
                FROM Subjects
                WHERE StudentId = @sid {where}
                ORDER BY SortOrder, Name",
@@ -205,15 +312,20 @@ public class DatabaseService
         {
             list.Add(new Subject
             {
-                Id            = reader.GetInt32(0),
-                StudentId     = reader.GetInt32(1),
-                Name          = reader.GetString(2),
-                Color         = reader.GetString(3),
-                SortOrder     = reader.GetInt32(4),
-                IsActive      = reader.GetInt32(5) == 1,
-                ScheduleType  = reader.GetString(6),
-                ScheduleDays  = reader.GetString(7),
-                ScheduleDates = reader.GetString(8)
+                Id                = reader.GetInt32(0),
+                StudentId         = reader.GetInt32(1),
+                Name              = reader.GetString(2),
+                Color             = reader.GetString(3),
+                SortOrder         = reader.GetInt32(4),
+                IsActive          = reader.GetInt32(5) == 1,
+                ScheduleType      = reader.GetString(6),
+                ScheduleDays      = reader.GetString(7),
+                ScheduleDates     = reader.GetString(8),
+                ScheduleMonthly   = reader.IsDBNull(9)  ? "" : reader.GetString(9),
+                ScheduleEndType   = reader.IsDBNull(10) ? "None" : reader.GetString(10),
+                ScheduleEndDate   = reader.IsDBNull(11) ? "" : reader.GetString(11),
+                ScheduleEndCount  = reader.IsDBNull(12) ? 0 : reader.GetInt32(12),
+                ExcludedDates     = reader.IsDBNull(13) ? "" : reader.GetString(13)
             });
         }
         return list;
@@ -225,17 +337,26 @@ public class DatabaseService
         conn.Open();
 
         using var cmd = new SqliteCommand(@"
-            INSERT INTO Subjects (StudentId, Name, Color, SortOrder, ScheduleType, ScheduleDays, ScheduleDates)
-            VALUES (@sid, @name, @color, @order, @stype, @sdays, @sdates);
+            INSERT INTO Subjects (StudentId, Name, Color, SortOrder,
+                                  ScheduleType, ScheduleDays, ScheduleDates, ScheduleMonthly,
+                                  ScheduleEndType, ScheduleEndDate, ScheduleEndCount, ExcludedDates)
+            VALUES (@sid, @name, @color, @order,
+                    @stype, @sdays, @sdates, @smonthly,
+                    @sendtype, @senddate, @sendcount, @excl);
             SELECT last_insert_rowid();",
             conn);
-        cmd.Parameters.AddWithValue("@sid",    subject.StudentId);
-        cmd.Parameters.AddWithValue("@name",   subject.Name);
-        cmd.Parameters.AddWithValue("@color",  subject.Color);
-        cmd.Parameters.AddWithValue("@order",  subject.SortOrder);
-        cmd.Parameters.AddWithValue("@stype",  subject.ScheduleType);
-        cmd.Parameters.AddWithValue("@sdays",  subject.ScheduleDays);
-        cmd.Parameters.AddWithValue("@sdates", subject.ScheduleDates);
+        cmd.Parameters.AddWithValue("@sid",       subject.StudentId);
+        cmd.Parameters.AddWithValue("@name",      subject.Name);
+        cmd.Parameters.AddWithValue("@color",     subject.Color);
+        cmd.Parameters.AddWithValue("@order",     subject.SortOrder);
+        cmd.Parameters.AddWithValue("@stype",     subject.ScheduleType);
+        cmd.Parameters.AddWithValue("@sdays",     subject.ScheduleDays);
+        cmd.Parameters.AddWithValue("@sdates",    subject.ScheduleDates);
+        cmd.Parameters.AddWithValue("@smonthly",  subject.ScheduleMonthly);
+        cmd.Parameters.AddWithValue("@sendtype",  subject.ScheduleEndType);
+        cmd.Parameters.AddWithValue("@senddate",  subject.ScheduleEndDate);
+        cmd.Parameters.AddWithValue("@sendcount", subject.ScheduleEndCount);
+        cmd.Parameters.AddWithValue("@excl",      subject.ExcludedDates);
 
         subject.Id = Convert.ToInt32(cmd.ExecuteScalar());
         return subject;
@@ -249,18 +370,38 @@ public class DatabaseService
         using var cmd = new SqliteCommand(@"
             UPDATE Subjects
             SET Name = @name, Color = @color, SortOrder = @order, IsActive = @active,
-                ScheduleType = @stype, ScheduleDays = @sdays, ScheduleDates = @sdates
+                ScheduleType = @stype, ScheduleDays = @sdays, ScheduleDates = @sdates,
+                ScheduleMonthly = @smonthly,
+                ScheduleEndType = @sendtype, ScheduleEndDate = @senddate, ScheduleEndCount = @sendcount,
+                ExcludedDates = @excl
             WHERE Id = @id",
             conn);
-        cmd.Parameters.AddWithValue("@name",   subject.Name);
-        cmd.Parameters.AddWithValue("@color",  subject.Color);
-        cmd.Parameters.AddWithValue("@order",  subject.SortOrder);
-        cmd.Parameters.AddWithValue("@active", subject.IsActive ? 1 : 0);
-        cmd.Parameters.AddWithValue("@stype",  subject.ScheduleType);
-        cmd.Parameters.AddWithValue("@sdays",  subject.ScheduleDays);
-        cmd.Parameters.AddWithValue("@sdates", subject.ScheduleDates);
-        cmd.Parameters.AddWithValue("@id",     subject.Id);
+        cmd.Parameters.AddWithValue("@name",      subject.Name);
+        cmd.Parameters.AddWithValue("@color",     subject.Color);
+        cmd.Parameters.AddWithValue("@order",     subject.SortOrder);
+        cmd.Parameters.AddWithValue("@active",    subject.IsActive ? 1 : 0);
+        cmd.Parameters.AddWithValue("@stype",     subject.ScheduleType);
+        cmd.Parameters.AddWithValue("@sdays",     subject.ScheduleDays);
+        cmd.Parameters.AddWithValue("@sdates",    subject.ScheduleDates);
+        cmd.Parameters.AddWithValue("@smonthly",  subject.ScheduleMonthly);
+        cmd.Parameters.AddWithValue("@sendtype",  subject.ScheduleEndType);
+        cmd.Parameters.AddWithValue("@senddate",  subject.ScheduleEndDate);
+        cmd.Parameters.AddWithValue("@sendcount", subject.ScheduleEndCount);
+        cmd.Parameters.AddWithValue("@excl",      subject.ExcludedDates);
+        cmd.Parameters.AddWithValue("@id",        subject.Id);
         cmd.ExecuteNonQuery();
+    }
+
+    // Add a single excluded date for a subject (for "delete this occurrence only")
+    public void AddExcludedDate(Subject subject, string dateStr)
+    {
+        var dates = string.IsNullOrEmpty(subject.ExcludedDates)
+            ? new List<string>()
+            : subject.ExcludedDates.Split(',').Select(d => d.Trim()).ToList();
+        if (!dates.Contains(dateStr))
+            dates.Add(dateStr);
+        subject.ExcludedDates = string.Join(",", dates);
+        UpdateSubject(subject);
     }
 
     public void DeleteSubject(int subjectId)
@@ -269,6 +410,7 @@ public class DatabaseService
         conn.Open();
 
         using var cmd = new SqliteCommand(@"
+            DELETE FROM LessonItems WHERE LessonEntryId IN (SELECT Id FROM LessonEntries WHERE SubjectId = @id);
             DELETE FROM LessonEntries WHERE SubjectId = @id;
             DELETE FROM Subjects WHERE Id = @id;",
             conn);
@@ -287,7 +429,7 @@ public class DatabaseService
         conn.Open();
 
         using var cmd = new SqliteCommand(@"
-            SELECT Id, SubjectId, StudentId, LessonDate, Title, Notes, IsComplete
+            SELECT Id, SubjectId, StudentId, LessonDate, Notes, IsComplete
             FROM LessonEntries
             WHERE StudentId = @sid
               AND LessonDate >= @start
@@ -300,9 +442,11 @@ public class DatabaseService
 
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
-        {
             list.Add(ReadEntry(reader));
-        }
+        reader.Close();
+
+        // Load LessonItems for all entries in one pass
+        LoadItemsForEntries(conn, list);
         return list;
     }
 
@@ -312,7 +456,7 @@ public class DatabaseService
         conn.Open();
 
         using var cmd = new SqliteCommand(@"
-            SELECT Id, SubjectId, StudentId, LessonDate, Title, Notes, IsComplete
+            SELECT Id, SubjectId, StudentId, LessonDate, Notes, IsComplete
             FROM LessonEntries
             WHERE SubjectId = @sub AND StudentId = @sid AND LessonDate = @date
             LIMIT 1",
@@ -322,10 +466,14 @@ public class DatabaseService
         cmd.Parameters.AddWithValue("@date", date);
 
         using var reader = cmd.ExecuteReader();
-        return reader.Read() ? ReadEntry(reader) : null;
+        if (!reader.Read()) return null;
+        var entry = ReadEntry(reader);
+        reader.Close();
+        LoadItemsForEntries(conn, new List<LessonEntry> { entry });
+        return entry;
     }
 
-    // Inserts if Id == 0, updates otherwise
+    // Inserts if Id == 0, updates otherwise. Also saves Items list.
     public LessonEntry SaveEntry(LessonEntry entry)
     {
         using var conn = new SqliteConnection(_connectionString);
@@ -334,14 +482,13 @@ public class DatabaseService
         if (entry.Id == 0)
         {
             using var cmd = new SqliteCommand(@"
-                INSERT INTO LessonEntries (SubjectId, StudentId, LessonDate, Title, Notes, IsComplete)
-                VALUES (@sub, @sid, @date, @title, @notes, @done);
+                INSERT INTO LessonEntries (SubjectId, StudentId, LessonDate, Notes, IsComplete)
+                VALUES (@sub, @sid, @date, @notes, @done);
                 SELECT last_insert_rowid();",
                 conn);
             cmd.Parameters.AddWithValue("@sub",   entry.SubjectId);
             cmd.Parameters.AddWithValue("@sid",   entry.StudentId);
             cmd.Parameters.AddWithValue("@date",  entry.LessonDate);
-            cmd.Parameters.AddWithValue("@title", entry.Title);
             cmd.Parameters.AddWithValue("@notes", entry.Notes);
             cmd.Parameters.AddWithValue("@done",  entry.IsComplete ? 1 : 0);
             entry.Id = Convert.ToInt32(cmd.ExecuteScalar());
@@ -349,18 +496,75 @@ public class DatabaseService
         else
         {
             using var cmd = new SqliteCommand(@"
-                UPDATE LessonEntries
-                SET Title = @title, Notes = @notes, IsComplete = @done
-                WHERE Id = @id",
+                UPDATE LessonEntries SET Notes = @notes, IsComplete = @done WHERE Id = @id",
                 conn);
-            cmd.Parameters.AddWithValue("@title", entry.Title);
             cmd.Parameters.AddWithValue("@notes", entry.Notes);
             cmd.Parameters.AddWithValue("@done",  entry.IsComplete ? 1 : 0);
             cmd.Parameters.AddWithValue("@id",    entry.Id);
             cmd.ExecuteNonQuery();
         }
 
+        // Replace all items
+        using var delItems = new SqliteCommand("DELETE FROM LessonItems WHERE LessonEntryId = @eid", conn);
+        delItems.Parameters.AddWithValue("@eid", entry.Id);
+        delItems.ExecuteNonQuery();
+
+        for (int i = 0; i < entry.Items.Count; i++)
+        {
+            var item = entry.Items[i];
+            using var ins = new SqliteCommand(@"
+                INSERT INTO LessonItems (LessonEntryId, Title, SubTitle, SortOrder, IsComplete)
+                VALUES (@eid, @t, @st, @ord, @done);
+                SELECT last_insert_rowid();",
+                conn);
+            ins.Parameters.AddWithValue("@eid",  entry.Id);
+            ins.Parameters.AddWithValue("@t",    item.Title);
+            ins.Parameters.AddWithValue("@st",   item.SubTitle);
+            ins.Parameters.AddWithValue("@ord",  i);
+            ins.Parameters.AddWithValue("@done", item.IsComplete ? 1 : 0);
+            item.Id = Convert.ToInt32(ins.ExecuteScalar());
+        }
+
         return entry;
+    }
+
+    // Toggle IsComplete on a single LessonItem
+    public void SetLessonItemComplete(int itemId, bool complete)
+    {
+        using var conn = new SqliteConnection(_connectionString);
+        conn.Open();
+        using var cmd = new SqliteCommand(
+            "UPDATE LessonItems SET IsComplete = @done WHERE Id = @id", conn);
+        cmd.Parameters.AddWithValue("@done", complete ? 1 : 0);
+        cmd.Parameters.AddWithValue("@id",   itemId);
+        cmd.ExecuteNonQuery();
+    }
+
+    // Toggle IsComplete on a whole LessonEntry block
+    public void SetEntryComplete(int entryId, bool complete)
+    {
+        using var conn = new SqliteConnection(_connectionString);
+        conn.Open();
+        using var cmd = new SqliteCommand(
+            "UPDATE LessonEntries SET IsComplete = @done WHERE Id = @id", conn);
+        cmd.Parameters.AddWithValue("@done", complete ? 1 : 0);
+        cmd.Parameters.AddWithValue("@id",   entryId);
+        cmd.ExecuteNonQuery();
+    }
+
+    // Create an entry set to complete immediately (for quick-complete from calendar)
+    public LessonEntry EnsureEntry(int subjectId, int studentId, string date)
+    {
+        var existing = GetEntry(subjectId, studentId, date);
+        if (existing != null) return existing;
+        return SaveEntry(new LessonEntry
+        {
+            SubjectId  = subjectId,
+            StudentId  = studentId,
+            LessonDate = date,
+            Notes      = "",
+            IsComplete = false
+        });
     }
 
     public void DeleteEntry(int entryId)
@@ -368,9 +572,40 @@ public class DatabaseService
         using var conn = new SqliteConnection(_connectionString);
         conn.Open();
 
+        using var delItems = new SqliteCommand("DELETE FROM LessonItems WHERE LessonEntryId = @id", conn);
+        delItems.Parameters.AddWithValue("@id", entryId);
+        delItems.ExecuteNonQuery();
+
         using var cmd = new SqliteCommand("DELETE FROM LessonEntries WHERE Id = @id", conn);
         cmd.Parameters.AddWithValue("@id", entryId);
         cmd.ExecuteNonQuery();
+    }
+
+    private static void LoadItemsForEntries(SqliteConnection conn, List<LessonEntry> entries)
+    {
+        if (entries.Count == 0) return;
+        var ids = string.Join(",", entries.Select(e => e.Id));
+        using var cmd = new SqliteCommand(
+            $"SELECT Id, LessonEntryId, Title, SubTitle, SortOrder, IsComplete FROM LessonItems WHERE LessonEntryId IN ({ids}) ORDER BY SortOrder",
+            conn);
+        using var r = cmd.ExecuteReader();
+        var lookup = entries.ToDictionary(e => e.Id);
+        while (r.Read())
+        {
+            var entryId = r.GetInt32(1);
+            if (lookup.TryGetValue(entryId, out var entry))
+            {
+                entry.Items.Add(new LessonItem
+                {
+                    Id            = r.GetInt32(0),
+                    LessonEntryId = entryId,
+                    Title         = r.GetString(2),
+                    SubTitle      = r.GetString(3),
+                    SortOrder     = r.GetInt32(4),
+                    IsComplete    = r.GetInt32(5) == 1
+                });
+            }
+        }
     }
 
     private static LessonEntry ReadEntry(SqliteDataReader r) => new()
@@ -379,9 +614,8 @@ public class DatabaseService
         SubjectId  = r.GetInt32(1),
         StudentId  = r.GetInt32(2),
         LessonDate = r.GetString(3),
-        Title      = r.GetString(4),
-        Notes      = r.GetString(5),
-        IsComplete = r.GetInt32(6) == 1
+        Notes      = r.GetString(4),
+        IsComplete = r.GetInt32(5) == 1
     };
 
     // -------------------------------------------------------------------------
@@ -408,7 +642,9 @@ public class DatabaseService
             FontSize            = dict.GetValueOrDefault("FontSize",            "Medium"),
             FontFamily          = dict.GetValueOrDefault("FontFamily",          "Segoe UI"),
             SchoolYearStart     = dict.GetValueOrDefault("SchoolYearStart",     DateTime.Today.ToString("yyyy-MM-dd")),
-            SchoolDays          = dict.GetValueOrDefault("SchoolDays",          "1,2,3,4,5"),
+            SchoolYearEnd       = dict.GetValueOrDefault("SchoolYearEnd",       DateTime.Today.AddYears(1).AddDays(-1).ToString("yyyy-MM-dd")),
+            SchoolDays                = dict.GetValueOrDefault("SchoolDays",                "1,2,3,4,5"),
+            ShowGradeTemplatePrompt   = dict.GetValueOrDefault("ShowGradeTemplatePrompt",   "true") != "false",
         };
     }
 
@@ -435,7 +671,9 @@ public class DatabaseService
         Upsert("FontSize",             s.FontSize);
         Upsert("FontFamily",           s.FontFamily);
         Upsert("SchoolYearStart",      s.SchoolYearStart);
-        Upsert("SchoolDays",           s.SchoolDays);
+        Upsert("SchoolYearEnd",        s.SchoolYearEnd);
+        Upsert("SchoolDays",                s.SchoolDays);
+        Upsert("ShowGradeTemplatePrompt",   s.ShowGradeTemplatePrompt ? "true" : "false");
     }
 
     // Wipes all student/lesson data. AppSettings and GradeClasses are preserved.

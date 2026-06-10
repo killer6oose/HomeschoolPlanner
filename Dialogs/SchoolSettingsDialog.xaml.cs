@@ -12,22 +12,26 @@ public partial class SchoolSettingsDialog : Window
     private readonly DatabaseService _db;
     private GradeClass? _editingClass;
 
-    public SchoolSettingsDialog(DatabaseService db)
+    public SchoolSettingsDialog(DatabaseService db, int selectedTab = 0)
     {
         InitializeComponent();
         _db = db;
 
-        Loaded += OnLoaded;
+        Loaded += (s, e) =>
+        {
+            SchoolTabControl.SelectedIndex = selectedTab;
+            OnLoaded(s, e);
+        };
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         // ---- General tab ----
-        // School year start
-        if (DateTime.TryParse(AppState.Settings.SchoolYearStart, out var schoolStart))
-            SchoolYearStartPicker.SelectedDate = schoolStart;
-        else
-            SchoolYearStartPicker.SelectedDate = DateTime.Today;
+        // School year start / end
+        SchoolYearStartPicker.SelectedDate = DateTime.TryParse(AppState.Settings.SchoolYearStart, out var schoolStart)
+            ? schoolStart : DateTime.Today;
+        SchoolYearEndPicker.SelectedDate = DateTime.TryParse(AppState.Settings.SchoolYearEnd, out var schoolEnd)
+            ? schoolEnd : DateTime.Today.AddYears(1).AddDays(-1);
 
         // School days checkboxes
         var activeDays = AppState.Settings.SchoolDayNumbers.ToHashSet();
@@ -81,7 +85,7 @@ public partial class SchoolSettingsDialog : Window
     private void LoadForEdit(GradeClass gc)
     {
         _editingClass          = gc;
-        EditPanelTitle.Text    = "Edit Class";
+        EditPanelTitle.Text    = "Edit Subject";
         ClassNameBox.Text      = gc.Name;
         ClassColorBox.Text     = gc.Color;
         DeleteClassBtn.Visibility = Visibility.Visible;
@@ -108,7 +112,7 @@ public partial class SchoolSettingsDialog : Window
     private void ClearEdit()
     {
         _editingClass             = null;
-        EditPanelTitle.Text       = "New Class";
+        EditPanelTitle.Text       = "New Subject";
         ClassNameBox.Text         = "";
         ClassColorBox.Text        = "#4A7CB5";
         DeleteClassBtn.Visibility = Visibility.Collapsed;
@@ -148,7 +152,7 @@ public partial class SchoolSettingsDialog : Window
         var name = ClassNameBox.Text.Trim();
         if (string.IsNullOrEmpty(name))
         {
-            MessageBox.Show("Enter a class name.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Enter a subject name.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -199,7 +203,7 @@ public partial class SchoolSettingsDialog : Window
         if (_editingClass == null) return;
         var confirm = MessageBox.Show(
             $"Delete '{_editingClass.Name}'?",
-            "Delete Class",
+            "Delete Subject",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
@@ -219,10 +223,13 @@ public partial class SchoolSettingsDialog : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        // General tab - school year start
+        // General tab - school year start / end
         AppState.Settings.SchoolYearStart = SchoolYearStartPicker.SelectedDate.HasValue
             ? SchoolYearStartPicker.SelectedDate.Value.ToString("yyyy-MM-dd")
             : DateTime.Today.ToString("yyyy-MM-dd");
+        AppState.Settings.SchoolYearEnd = SchoolYearEndPicker.SelectedDate.HasValue
+            ? SchoolYearEndPicker.SelectedDate.Value.ToString("yyyy-MM-dd")
+            : DateTime.Today.AddYears(1).AddDays(-1).ToString("yyyy-MM-dd");
 
         // General tab - school days
         var selectedDays = new List<int>();

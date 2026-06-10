@@ -38,6 +38,7 @@ public partial class PreferencesDialog : Window
         {
             case "Dark":   RadioDark.IsChecked   = true; break;
             case "Pride":  RadioPride.IsChecked  = true; break;
+            case "Cherry": RadioCherry.IsChecked = true; break;
             case "Custom": RadioCustom.IsChecked = true; break;
             default:       RadioLight.IsChecked  = true; break;
         }
@@ -50,6 +51,8 @@ public partial class PreferencesDialog : Window
         CustomPrimaryBox.Text = s.CustomPrimaryColor;
         CustomBgBox.Text      = s.CustomSecondaryColor;
         CustomFontBox.Text    = s.CustomFontColor;
+
+        ShowGradeTemplateCheck.IsChecked = s.ShowGradeTemplatePrompt;
     }
 
     private void Theme_Changed(object sender, RoutedEventArgs e)
@@ -98,21 +101,23 @@ public partial class PreferencesDialog : Window
         {
             _ when RadioDark.IsChecked   == true => "Dark",
             _ when RadioPride.IsChecked  == true => "Pride",
+            _ when RadioCherry.IsChecked == true => "Cherry",
             _ when RadioCustom.IsChecked == true => "Custom",
             _                                     => "Light"
         };
 
         s.FontSize = true switch
         {
-            _ when RadioSmall.IsChecked => "Small",
-            _ when RadioLarge.IsChecked => "Large",
-            _                           => "Medium"
+            _ when RadioSmall.IsChecked == true => "Small",
+            _ when RadioLarge.IsChecked == true => "Large",
+            _                                   => "Medium"
         };
 
-        s.FontFamily          = FontCombo.SelectedItem as string ?? "Segoe UI";
-        s.CustomPrimaryColor  = NormalizeHex(CustomPrimaryBox.Text);
-        s.CustomSecondaryColor = NormalizeHex(CustomBgBox.Text);
-        s.CustomFontColor     = NormalizeHex(CustomFontBox.Text);
+        s.FontFamily               = FontCombo.SelectedItem as string ?? "Segoe UI";
+        s.CustomPrimaryColor       = NormalizeHex(CustomPrimaryBox.Text);
+        s.CustomSecondaryColor     = NormalizeHex(CustomBgBox.Text);
+        s.CustomFontColor          = NormalizeHex(CustomFontBox.Text);
+        s.ShowGradeTemplatePrompt  = ShowGradeTemplateCheck.IsChecked == true;
 
         _db.SaveSettings(s);
         ThemeManager.Apply(s);

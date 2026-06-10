@@ -4,7 +4,7 @@
         Title="Manage Subjects"
         Width="540" Height="580"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{DynamicResource DialogBackgroundBrush}">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -15,23 +15,24 @@
 
         <TextBlock Grid.Row="0" FontSize="18" FontWeight="Bold"
                    x:Name="DialogTitle"
-                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16" />
 
         <!-- Subject list -->
         <ListBox x:Name="SubjectList" Grid.Row="1"
-                 BorderBrush="{StaticResource BorderBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"
                  SelectionChanged="SubjectList_SelectionChanged"
                  Margin="0,0,0,12" />
 
         <!-- Edit form -->
-        <Border Grid.Row="2" Background="White"
-                BorderBrush="{StaticResource BorderBrush}"
+        <Border Grid.Row="2"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="6"
                 Padding="14">
             <StackPanel>
                 <TextBlock x:Name="FormTitle" Text="Add Subject" FontSize="14" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12" />
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12" />
 
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
@@ -39,11 +40,11 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="Subject Name" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <TextBlock Text="Subject Name" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
                         <TextBox x:Name="NameBox" FontSize="13" />
                     </StackPanel>
                     <StackPanel Grid.Column="1">
-                        <TextBlock Text="Color" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <TextBlock Text="Color" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="90" />
@@ -60,7 +61,7 @@
 
                 <!-- Schedule -->
                 <TextBlock Text="Schedule" FontSize="12" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6" />
                 <StackPanel Margin="0,0,0,8">
                     <RadioButton x:Name="RadioEveryDay"   Content="Every school day"
                                  IsChecked="True" FontSize="13" Margin="0,0,0,4"
@@ -86,7 +87,7 @@
 
                 <StackPanel x:Name="SpecificDatesPanel" Visibility="Collapsed" Margin="0,0,0,8">
                     <TextBlock Text="Dates (YYYY-MM-DD, one per line)" FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
                     <TextBox x:Name="SpecificDatesBox" AcceptsReturn="True" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto" FontSize="13"
                              FontFamily="Consolas" MinHeight="50" MaxHeight="80" />
@@ -94,11 +95,11 @@
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="DeleteBtn" Content="Delete" Visibility="Collapsed"
-                            Style="{StaticResource NavButtonStyle}" Foreground="#CC2222"
+                            Style="{DynamicResource NavButtonStyle}" Foreground="#CC2222"
                             Margin="0,0,8,0" Click="Delete_Click" />
-                    <Button Content="Clear" Style="{StaticResource NavButtonStyle}"
+                    <Button Content="Clear" Style="{DynamicResource NavButtonStyle}"
                             Margin="0,0,8,0" Click="Clear_Click" />
-                    <Button Content="Save" Style="{StaticResource PrimaryButtonStyle}"
+                    <Button Content="Save" Style="{DynamicResource PrimaryButtonStyle}"
                             Click="Save_Click" />
                 </StackPanel>
             </StackPanel>

@@ -78,9 +78,9 @@ public partial class ManageStudentsDialog : Window
             // New student
             var student = _db.AddStudent(name, gradeKey, color);
 
-            // Offer to load grade template if any classes exist for this grade
+            // Offer to load grade template if any classes exist for this grade and pref is on
             var templateClasses = _db.GetGradeClasses(gradeKey);
-            if (templateClasses.Count > 0)
+            if (AppState.Settings.ShowGradeTemplatePrompt && templateClasses.Count > 0)
             {
                 var result = MessageBox.Show(
                     $"There are {templateClasses.Count} class(es) in the {gradeDisplay} template.\nLoad the default schedule for {name}?",

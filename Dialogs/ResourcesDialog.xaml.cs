@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using HomeschoolPlanner.Data;
+using HomeschoolPlanner.Helpers;
 using HomeschoolPlanner.Models;
 
 namespace HomeschoolPlanner.Dialogs;
@@ -13,11 +14,13 @@ public partial class ResourcesDialog : Window
     private readonly DatabaseService _db;
     private Resource? _editingResource;
 
-    // All subjects across all students for the "link to class" combo
-    private List<Subject> _allSubjects = new();
+    // Wrapper for the subject combo: shows "ClassName - Grade"
+    private record SubjectItem(int Id, string Display);
+
+    private List<SubjectItem> _subjectItems = new();
 
     // Sentinel for "no class"
-    private static readonly Subject NoClassSentinel = new() { Id = 0, Name = "(No class)" };
+    private static readonly SubjectItem NoClassItem = new(0, "(No class)");
 
     public ResourcesDialog(DatabaseService db)
     {
@@ -29,17 +32,23 @@ public partial class ResourcesDialog : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // Build subject list from all students
+        // Build subject list from all students with grade labels
         var students = _db.GetStudents();
-        _allSubjects = students
-            .SelectMany(s => _db.GetSubjects(s.Id, activeOnly: false))
-            .OrderBy(s => s.Name)
+
+        _subjectItems = students
+            .SelectMany(student =>
+            {
+                var gradeDisplay = GradeHelper.KeyToDisplay(student.Grade);
+                return _db.GetSubjects(student.Id, activeOnly: false)
+                          .Select(sub => new SubjectItem(sub.Id, $"{sub.Name} - {gradeDisplay}"));
+            })
+            .OrderBy(x => x.Display)
             .ToList();
 
-        var comboList = new List<Subject> { NoClassSentinel };
-        comboList.AddRange(_allSubjects);
+        var comboList = new List<SubjectItem> { NoClassItem };
+        comboList.AddRange(_subjectItems);
         SubjectCombo.ItemsSource       = comboList;
-        SubjectCombo.DisplayMemberPath = "Name";
+        SubjectCombo.DisplayMemberPath = "Display";
         SubjectCombo.SelectedIndex     = 0;
 
         RefreshList();
@@ -95,8 +104,8 @@ public partial class ResourcesDialog : Window
         RadioFile.IsChecked = r.Type == "File";
 
         // Select linked subject
-        var match = SubjectCombo.Items.Cast<Subject>().FirstOrDefault(s => s.Id == (r.SubjectId ?? 0));
-        SubjectCombo.SelectedItem = match ?? NoClassSentinel;
+        var match = SubjectCombo.Items.Cast<SubjectItem>().FirstOrDefault(s => s.Id == (r.SubjectId ?? 0));
+        SubjectCombo.SelectedItem = match ?? NoClassItem;
     }
 
     // -------------------------------------------------------------------------
@@ -115,8 +124,8 @@ public partial class ResourcesDialog : Window
         }
 
         var type      = RadioFile.IsChecked == true ? "File" : "URL";
-        var subjCombo = SubjectCombo.SelectedItem as Subject;
-        var subjectId = (subjCombo == null || subjCombo.Id == 0) ? (int?)null : subjCombo.Id;
+        var subjItem  = SubjectCombo.SelectedItem as SubjectItem;
+        var subjectId = (subjItem == null || subjItem.Id == 0) ? (int?)null : subjItem.Id;
 
         if (_editingResource != null)
         {
@@ -177,13 +186,13 @@ public partial class ResourcesDialog : Window
 
     private void ClearForm()
     {
-        _editingResource  = null;
-        FormTitle.Text    = "Add Resource";
-        NameBox.Text      = "";
-        PathBox.Text      = "";
-        DescBox.Text      = "";
-        RadioUrl.IsChecked = true;
-        SubjectCombo.SelectedIndex = 0;
+        _editingResource              = null;
+        FormTitle.Text                = "Add Resource";
+        NameBox.Text                  = "";
+        PathBox.Text                  = "";
+        DescBox.Text                  = "";
+        RadioUrl.IsChecked            = true;
+        SubjectCombo.SelectedItem     = NoClassItem;
         ResourceListBox.SelectedIndex = -1;
     }
 
