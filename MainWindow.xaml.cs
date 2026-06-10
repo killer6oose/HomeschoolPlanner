@@ -4,6 +4,7 @@ using HomeschoolPlanner.Data;
 using HomeschoolPlanner.Dialogs;
 using HomeschoolPlanner.Helpers;
 using HomeschoolPlanner.Models;
+using HomeschoolPlanner.Services;
 using HomeschoolPlanner.Views;
 
 namespace HomeschoolPlanner;
@@ -33,6 +34,11 @@ public partial class MainWindow : Window
         // an already-visible owner window or WPF throws InvalidOperationException
         Loaded += async (_, _) =>
         {
+            var ver = typeof(MainWindow).Assembly
+                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+                .FirstOrDefault()?.InformationalVersion ?? "?";
+            LogService.LogEvent("App", $"Started v{ver}");
             LoadStudents();
             ShowView("Week");
             // Fire update check after UI is up - runs in background, won't block startup
@@ -56,21 +62,72 @@ public partial class MainWindow : Window
         }
         else
         {
-            // No students yet - open the manage dialog to add the first one
-            var dlg = new ManageStudentsDialog(_db);
-            dlg.Owner = this;
-            dlg.ShowDialog();
-            ReloadStudents();
-
-            // If they just created a student, prompt to add a subject right away
-            if (_selectedStudent != null)
-            {
-                var allSubjects = _db.GetSubjects(_selectedStudent.Id, activeOnly: false);
-                var subDlg = new AddClassDialog(_db, _selectedStudent, allSubjects, DateTime.Today);
-                subDlg.Owner = this;
-                subDlg.ShowDialog();
-            }
+            // No students - show the welcome screen instead of auto-opening dialogs
+            ShowWelcomeScreen();
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Welcome screen (shown on first launch when no students exist)
+    // -------------------------------------------------------------------------
+
+    private void ShowWelcomeScreen()
+    {
+        var welcome = new WelcomeStartupDialog { Owner = this };
+        welcome.ShowDialog();
+
+        switch (welcome.ChosenAction)
+        {
+            case WelcomeAction.AddStudent:
+                new ManageStudentsDialog(_db) { Owner = this }.ShowDialog();
+                ReloadStudents();
+                ShowWelcomeScreen();   // return to welcome after dialog closes
+                break;
+
+            case WelcomeAction.AddSubject:
+                if (_selectedStudent != null)
+                {
+                    var subs = _db.GetSubjects(_selectedStudent.Id, activeOnly: false);
+                    new AddClassDialog(_db, _selectedStudent, subs, DateTime.Today) { Owner = this }.ShowDialog();
+                }
+                ShowWelcomeScreen();   // return to welcome after dialog closes
+                break;
+
+            case WelcomeAction.TakeTour:
+                StartTour(onComplete: ShowWelcomeScreen);
+                break;
+
+            // WelcomeAction.None = user closed the dialog - just continue to the planner
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Tour - called from welcome screen and File > Take a Tour
+    // -------------------------------------------------------------------------
+
+    private void StartTour(Action? onComplete = null)
+    {
+        var tour = new WalkthroughOverlay(this);
+        tour.WalkthroughCompleted += (_, _) =>
+        {
+            // Mark seen the first time
+            var s = _db.GetSettings();
+            if (!s.HasSeenWalkthrough)
+            {
+                s.HasSeenWalkthrough = true;
+                _db.SaveSettings(s);
+            }
+            onComplete?.Invoke();
+        };
+        tour.Begin();
+    }
+
+    private void TakeTour_Click(object sender, RoutedEventArgs e) => StartTour();
+
+    private void Help_Click(object sender, RoutedEventArgs e)
+    {
+        LogService.LogEvent("Help", "Opened Report a Problem dialog");
+        new ReportProblemDialog { Owner = this }.ShowDialog();
     }
 
     private void ReloadStudents()
@@ -107,6 +164,8 @@ public partial class MainWindow : Window
     {
         if (_splitViewActive) return; // Ignore combo changes while in split mode
         _selectedStudent = StudentCombo.SelectedItem as Student;
+        if (_selectedStudent != null)
+            LogService.LogEvent("Navigate", $"Student selected: {_selectedStudent.Name}");
         InvalidateViews();
         RefreshCurrentView();
     }
@@ -318,7 +377,11 @@ public partial class MainWindow : Window
     }
 
     private void SwitchView_Click(object sender, RoutedEventArgs e)
-        => ShowView((string)((Button)sender).Tag);
+    {
+        var view = (string)((Button)sender).Tag;
+        LogService.LogEvent("Navigate", $"Switched to {view} view");
+        ShowView(view);
+    }
 
     // -------------------------------------------------------------------------
     // Manage dialogs
@@ -338,6 +401,7 @@ public partial class MainWindow : Window
 
     private void SchoolSettings_Click(object sender, RoutedEventArgs e)
     {
+        LogService.LogEvent("Dialog", "Opened School Settings");
         var dlg = new SchoolSettingsDialog(_db, 0) { Owner = this };
         if (dlg.ShowDialog() == true)
         {
@@ -366,6 +430,7 @@ public partial class MainWindow : Window
 
     private void ManageStudents_Click(object sender, RoutedEventArgs e)
     {
+        LogService.LogEvent("Dialog", "Opened Manage Students");
         var dlg = new ManageStudentsDialog(_db);
         dlg.Owner = this;
         dlg.ShowDialog();
@@ -374,6 +439,7 @@ public partial class MainWindow : Window
 
     private void ManageSubjects_Click(object sender, RoutedEventArgs e)
     {
+        LogService.LogEvent("Dialog", "Opened Manage Subjects");
         // In split mode, pick which student's subjects to manage
         Student? target = _splitViewActive
             ? PickStudentForSubjectManagement()

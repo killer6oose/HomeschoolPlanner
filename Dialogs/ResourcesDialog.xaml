@@ -121,7 +121,7 @@
                              TextWrapping="Wrap" Margin="0,0,0,10" />
 
                     <!-- Linked class -->
-                    <TextBlock Text="Link to class (optional)" FontSize="12"
+                    <TextBlock Text="Link to subject (optional)" FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
                     <ComboBox x:Name="SubjectCombo" Margin="0,0,0,14" />
 

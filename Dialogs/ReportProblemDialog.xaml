@@ -1,0 +1,224 @@
+<Window x:Class="HomeschoolPlanner.Dialogs.ReportProblemDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Report a Problem"
+        Width="760" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource DialogBackgroundBrush}">
+
+    <Grid Margin="22,18,22,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><!-- header -->
+            <RowDefinition Height="Auto" /><!-- two-column body -->
+            <RowDefinition Height="Auto" /><!-- status -->
+            <RowDefinition Height="Auto" /><!-- buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Header ── -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Having trouble? Let us know!"
+                       FontSize="17" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="Fill out the form below and we'll look into it."
+                       FontSize="12" Margin="0,4,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- ── Two-column body ── -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: form fields -->
+            <StackPanel Grid.Column="0">
+
+                <!-- Type -->
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="What kind of report is this?"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5" />
+                    <ComboBox x:Name="CategoryCombo" SelectedIndex="0">
+                        <ComboBoxItem Content="Something isn't working (bug)" Tag="Bug" />
+                        <ComboBoxItem Content="I have a suggestion or idea"   Tag="Suggestion" />
+                        <ComboBoxItem Content="I have a question"            Tag="Question" />
+                        <ComboBoxItem Content="Other"                        Tag="Other" />
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Short description -->
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="Short description  *"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5" />
+                    <TextBox x:Name="TitleBox" MaxLength="120"
+                             FontSize="{DynamicResource AppFontSize}" />
+                    <TextBlock Text="e.g. &quot;App crashes when I add a subject on Friday&quot;"
+                               FontSize="10" Margin="0,3,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- Notes -->
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="More details (optional)"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5" />
+                    <TextBox x:Name="DetailsBox"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             Height="100" VerticalScrollBarVisibility="Auto"
+                             FontSize="{DynamicResource AppFontSize}" />
+                </StackPanel>
+
+                <!-- Contact info -->
+                <Border Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="12,10">
+                    <StackPanel>
+                        <TextBlock FontSize="12" FontWeight="SemiBold" Margin="0,0,0,3"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Contact info (optional)" />
+                        <TextBlock FontSize="10" Margin="0,0,0,9"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Leave your name and email if you'd like us to follow up or let you know when this is resolved." />
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="50" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Name" VerticalAlignment="Center"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBox x:Name="ContactNameBox" Grid.Column="1" MaxLength="80"
+                                     FontSize="{DynamicResource AppFontSize}" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="50" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Email" VerticalAlignment="Center"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBox x:Name="ContactEmailBox" Grid.Column="1" MaxLength="120"
+                                     FontSize="{DynamicResource AppFontSize}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+
+            <!-- RIGHT: log + screenshot -->
+            <StackPanel Grid.Column="2">
+
+                <!-- Activity log -->
+                <CheckBox x:Name="IncludeLogCheck"
+                          IsChecked="True"
+                          Margin="0,0,0,6"
+                          Checked="LogCheck_Changed"
+                          Unchecked="LogCheck_Changed">
+                    <StackPanel>
+                        <TextBlock Text="Include activity log"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Helps us find the problem faster."
+                                   FontSize="10"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                </CheckBox>
+
+                <Border x:Name="LogPreviewBorder"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Margin="0,0,0,14" Padding="7"
+                        Height="180">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="LogPreviewText"
+                                   FontFamily="Consolas" FontSize="10"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Screenshot -->
+                <TextBlock Text="Attach a screenshot (optional)"
+                           FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,5" />
+
+                <Border x:Name="ScreenshotDropBorder"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="8" Height="140"
+                        AllowDrop="True"
+                        DragOver="ScreenshotDrop_DragOver"
+                        Drop="ScreenshotDrop_Drop">
+                    <Grid>
+                        <!-- Placeholder when nothing selected -->
+                        <StackPanel x:Name="ScreenshotPlaceholder"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="&#xEB9F;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="28" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock Text="Drag and drop or click Browse"
+                                       FontSize="10" Margin="0,5,0,0"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- Thumbnail once file is selected -->
+                        <Image x:Name="ScreenshotPreview"
+                               Stretch="Uniform"
+                               Visibility="Collapsed" />
+
+                        <!-- Filename label -->
+                        <TextBlock x:Name="ScreenshotName"
+                                   VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                                   Margin="0,0,0,4"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Visibility="Collapsed"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button x:Name="BrowseBtn" Content="Browse..."
+                            Style="{DynamicResource NavButtonStyle}"
+                            FontSize="11" Padding="8,4"
+                            Click="Browse_Click" />
+                    <Button x:Name="ClearScreenshotBtn" Content="Clear"
+                            Style="{DynamicResource NavButtonStyle}"
+                            FontSize="11" Padding="8,4"
+                            Margin="6,0,0,0"
+                            Visibility="Collapsed"
+                            Click="ClearScreenshot_Click" />
+                </StackPanel>
+
+            </StackPanel>
+        </Grid>
+
+        <!-- ── Status text ── -->
+        <TextBlock x:Name="StatusText" Grid.Row="2"
+                   Margin="0,12,0,6" FontSize="12"
+                   TextWrapping="Wrap"
+                   Visibility="Collapsed" />
+
+        <!-- ── Buttons ── -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,4,0,0">
+            <Button x:Name="CancelBtn" Content="Cancel"
+                    Style="{DynamicResource NavButtonStyle}"
+                    Margin="0,0,8,0" Click="Cancel_Click" />
+            <Button x:Name="SubmitBtn" Content="Submit Report"
+                    Style="{DynamicResource PrimaryButtonStyle}"
+                    MinWidth="120"
+                    Click="Submit_Click" />
+        </StackPanel>
+
+    </Grid>
+</Window>

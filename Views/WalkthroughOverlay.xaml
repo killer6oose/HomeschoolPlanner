@@ -1,0 +1,80 @@
+<Window x:Class="HomeschoolPlanner.Views.WalkthroughOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        Focusable="True">
+
+    <!--
+        Full-size transparent canvas. Background="Transparent" (not null) means
+        the canvas still participates in hit-testing, so clicks can't fall through
+        to the app while the overlay is visible.
+    -->
+    <Canvas x:Name="RootCanvas" Background="Transparent">
+
+        <!-- Backdrop path (semi-transparent dark, with spotlight hole) drawn in code-behind -->
+
+        <!-- Callout card -->
+        <Border x:Name="CalloutCard"
+                Background="{DynamicResource DialogBackgroundBrush}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="2"
+                CornerRadius="10"
+                Padding="20,16"
+                Width="310"
+                Canvas.Left="0"
+                Canvas.Top="0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="22" ShadowDepth="5" Color="Black" Opacity="0.45" />
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock x:Name="StepTitle"
+                           FontSize="15"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,8" />
+                <TextBlock x:Name="StepMessage"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           LineHeight="20" />
+                <Grid Margin="0,16,0,0">
+                    <TextBlock x:Name="StepCounter"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Left"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <Button x:Name="SkipBtn"
+                                Content="Skip all"
+                                Style="{DynamicResource NavButtonStyle}"
+                                Click="Skip_Click"
+                                Margin="0,0,6,0" />
+                        <Button x:Name="BackBtn"
+                                Content="&#8592; Back"
+                                Style="{DynamicResource NavButtonStyle}"
+                                Click="Back_Click"
+                                Margin="0,0,6,0" />
+                        <Button x:Name="NextBtn"
+                                Content="Next &#8594;"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Click="Next_Click" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Arrow triangle connecting callout to spotlight - points drawn in code-behind -->
+        <Polygon x:Name="CalloutArrow"
+                 Fill="{DynamicResource AccentBrush}"
+                 Visibility="Collapsed" />
+
+    </Canvas>
+</Window>

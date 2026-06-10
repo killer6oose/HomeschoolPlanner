@@ -12,22 +12,62 @@
         <!-- ============================================================ -->
         <!-- Menu bar -->
         <!-- ============================================================ -->
-        <Menu DockPanel.Dock="Top"
+        <Menu x:Name="MainMenu"
+              DockPanel.Dock="Top"
               Background="{DynamicResource SurfaceBrush}"
               Foreground="{DynamicResource TextPrimaryBrush}"
               BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="0,0,0,1">
             <MenuItem Header="File" Foreground="{DynamicResource TextPrimaryBrush}">
-                <MenuItem Header="Preferences" Click="Preferences_Click" />
+                <MenuItem Header="Preferences" Click="Preferences_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    </MenuItem.Icon>
+                </MenuItem>
                 <Separator />
-                <MenuItem Header="About" Click="About_Click" />
+                <MenuItem Header="Take a Tour" Click="TakeTour_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="About" Click="About_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="School Settings" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="SchoolSettings_Click" />
+                      Click="SchoolSettings_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </MenuItem.Icon>
+            </MenuItem>
             <MenuItem Header="Resources" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="Resources_Click" />
+                      Click="Resources_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="&#xE736;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </MenuItem.Icon>
+            </MenuItem>
             <MenuItem Header="Reports" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="Reports_Click" />
+                      Click="Reports_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Help" Foreground="{DynamicResource TextPrimaryBrush}"
+                      Click="Help_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="&#xE897;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </MenuItem.Icon>
+            </MenuItem>
         </Menu>
 
         <!-- ============================================================ -->
@@ -65,12 +105,14 @@
                         ToolTip="View multiple students side by side"
                         Click="SplitView_Click" />
 
-                <Button Content="Students"
+                <Button x:Name="StudentsBtn"
+                        Content="Students"
                         Style="{DynamicResource NavButtonStyle}"
                         Margin="6,0,0,0"
                         Click="ManageStudents_Click" />
 
-                <Button Content="Subjects"
+                <Button x:Name="SubjectsBtn"
+                        Content="Subjects"
                         Style="{DynamicResource NavButtonStyle}"
                         Margin="6,0,0,0"
                         Click="ManageSubjects_Click" />
@@ -95,7 +137,7 @@
 
                 <!-- Center: Date navigation -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal"
-                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                            HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="&#8592;" Style="{DynamicResource NavButtonStyle}"
                             Width="32" Click="PrevPeriod_Click" />
                     <Button Content="Today"

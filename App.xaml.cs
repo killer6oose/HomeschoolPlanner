@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Threading;
 using HomeschoolPlanner.Data;
 using HomeschoolPlanner.Helpers;
+using HomeschoolPlanner.Services;
 
 namespace HomeschoolPlanner;
 
@@ -16,10 +17,15 @@ public partial class App : Application
     {
         // Wire up global crash handlers before anything else runs
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
-            WriteCrashLog("UnhandledException", ex.ExceptionObject as Exception);
+        {
+            var e2 = ex.ExceptionObject as Exception;
+            LogService.LogError("UnhandledException", e2 ?? new Exception(ex.ExceptionObject?.ToString()));
+            WriteCrashLog("UnhandledException", e2);
+        };
 
         DispatcherUnhandledException += (_, ex) =>
         {
+            LogService.LogError("DispatcherUnhandledException", ex.Exception);
             WriteCrashLog("DispatcherUnhandledException", ex.Exception);
             ex.Handled = true; // keep the process alive so the log can be written
             MessageBox.Show(

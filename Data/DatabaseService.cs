@@ -1,5 +1,6 @@
 using System.IO;
 using HomeschoolPlanner.Models;
+using HomeschoolPlanner.Services;
 using Microsoft.Data.Sqlite;
 
 namespace HomeschoolPlanner.Data;
@@ -645,6 +646,7 @@ public class DatabaseService
             SchoolYearEnd       = dict.GetValueOrDefault("SchoolYearEnd",       DateTime.Today.AddYears(1).AddDays(-1).ToString("yyyy-MM-dd")),
             SchoolDays                = dict.GetValueOrDefault("SchoolDays",                "1,2,3,4,5"),
             ShowGradeTemplatePrompt   = dict.GetValueOrDefault("ShowGradeTemplatePrompt",   "true") != "false",
+            HasSeenWalkthrough        = dict.GetValueOrDefault("HasSeenWalkthrough",         "false") == "true",
         };
     }
 
@@ -674,6 +676,7 @@ public class DatabaseService
         Upsert("SchoolYearEnd",        s.SchoolYearEnd);
         Upsert("SchoolDays",                s.SchoolDays);
         Upsert("ShowGradeTemplatePrompt",   s.ShowGradeTemplatePrompt ? "true" : "false");
+        Upsert("HasSeenWalkthrough",        s.HasSeenWalkthrough ? "true" : "false");
     }
 
     // Wipes all student/lesson data. AppSettings and GradeClasses are preserved.

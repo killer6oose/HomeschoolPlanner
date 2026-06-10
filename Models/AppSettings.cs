@@ -24,6 +24,9 @@ public class AppSettings
     // If true, prompt to apply grade template when creating a student in a graded year
     public bool ShowGradeTemplatePrompt { get; set; } = true;
 
+    // False until the user completes or skips the first-launch walkthrough
+    public bool HasSeenWalkthrough { get; set; } = false;
+
     // Parsed school day numbers in order
     public int[] SchoolDayNumbers =>
         SchoolDays.Split(',')

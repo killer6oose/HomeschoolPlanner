@@ -24,7 +24,8 @@ public partial class AddClassDialog : Window
         _existingSubjects = existingSubjects;
         _selectedDate     = selectedDate;
 
-        var comboItems = new List<Subject>(existingSubjects) { NewSubjectSentinel };
+        var comboItems = new List<Subject> { NewSubjectSentinel };
+        comboItems.AddRange(existingSubjects);
         SubjectCombo.ItemsSource       = comboItems;
         SubjectCombo.DisplayMemberPath = "Name";
         SubjectCombo.SelectedIndex     = 0;
