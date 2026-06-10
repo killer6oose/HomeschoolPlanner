@@ -11,14 +11,13 @@ public static class UpdateChecker
     private const string VersionUrl   = "https://hsrc.thehattons.co/releases/version.txt";
     private const string InstallerUrl = "https://hsrc.thehattons.co/releases/HomeschoolPlannerSetup.exe";
 
-    public static string CurrentVersion
-    {
-        get
-        {
-            var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
-        }
-    }
+    public static string CurrentVersion =>
+        Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion
+                ?.Split('+')[0]   // strip git commit hash if present
+                .Trim()
+        ?? "1.0.0";
 
     /// <summary>
     /// Checks for a newer version silently. Prompts the user only if one is found.

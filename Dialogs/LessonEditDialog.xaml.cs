@@ -193,6 +193,20 @@ public partial class LessonEditDialog : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        // If the user typed a title but didn't click "+ Add Lesson", add it for them
+        var pendingTitle = NewLessonTitle.Text.Trim();
+        if (!string.IsNullOrEmpty(pendingTitle))
+        {
+            _items.Add(new LessonItem
+            {
+                Title     = pendingTitle,
+                SubTitle  = NewLessonSubTitle.Text.Trim(),
+                SortOrder = _items.Count
+            });
+            NewLessonTitle.Clear();
+            NewLessonSubTitle.Clear();
+        }
+
         var notes = NotesBox.Text.Trim();
         var done  = CompleteCheck.IsChecked == true;
 

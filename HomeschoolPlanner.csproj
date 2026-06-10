@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -9,8 +9,7 @@
     <AssemblyName>HomeschoolPlanner</AssemblyName>
     <RootNamespace>HomeschoolPlanner</RootNamespace>
     <ApplicationIcon>planner.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
-    <AssemblyVersion>1.1.0</AssemblyVersion>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
