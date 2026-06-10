@@ -62,25 +62,28 @@ public static class UpdateChecker
 
         try
         {
-            using var http     = new HttpClient();
-            using var response = await http.GetAsync(InstallerUrl, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            var total = response.Content.Headers.ContentLength ?? -1L;
-
-            using var src  = await response.Content.ReadAsStreamAsync();
-            using var dest = File.Create(tempFile);
-
-            var    buf      = new byte[81920];
-            long   received = 0;
-            int    read;
-
-            while ((read = await src.ReadAsync(buf)) > 0)
+            using (var http = new HttpClient())
+            using (var response = await http.GetAsync(InstallerUrl, HttpCompletionOption.ResponseHeadersRead))
             {
-                await dest.WriteAsync(buf.AsMemory(0, read));
-                received += read;
-                if (total > 0)
-                    progress.SetProgress((double)received / total * 100);
+                response.EnsureSuccessStatusCode();
+
+                var total = response.Content.Headers.ContentLength ?? -1L;
+
+                using (var src  = await response.Content.ReadAsStreamAsync())
+                using (var dest = File.Create(tempFile))
+                {
+                    var  buf      = new byte[81920];
+                    long received = 0;
+                    int  read;
+
+                    while ((read = await src.ReadAsync(buf)) > 0)
+                    {
+                        await dest.WriteAsync(buf.AsMemory(0, read));
+                        received += read;
+                        if (total > 0)
+                            progress.SetProgress((double)received / total * 100);
+                    }
+                } // dest and src are fully closed/flushed here
             }
 
             progress.Close();

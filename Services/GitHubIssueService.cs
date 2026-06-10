@@ -105,8 +105,17 @@ public static class GitHubIssueService
 
             if (!response.IsSuccessStatusCode) return null;
 
-            // Return the raw URL so it can be embedded as a markdown image
-            return $"https://raw.githubusercontent.com/{AppSecrets.GitHubOwner}/{AppSecrets.GitHubRepo}/main/{repoPath}";
+            // Parse the download_url from the response rather than constructing it,
+            // so the branch name is always correct regardless of repo defaults.
+            var responseBody = await response.Content.ReadAsStringAsync();
+            using var doc    = JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("content", out var contentEl) &&
+                contentEl.TryGetProperty("download_url", out var urlEl))
+            {
+                return urlEl.GetString();
+            }
+
+            return null;
         }
         catch
         {

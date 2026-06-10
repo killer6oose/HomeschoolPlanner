@@ -10,6 +10,7 @@ namespace HomeschoolPlanner.Dialogs;
 public partial class ReportProblemDialog : Window
 {
     private string? _screenshotPath;
+    private string? _issueUrl;
 
     public ReportProblemDialog()
     {
@@ -109,9 +110,16 @@ public partial class ReportProblemDialog : Window
             return;
         }
 
+        var details = DetailsBox.Text.Trim();
+        if (string.IsNullOrEmpty(details))
+        {
+            ShowStatus("Please fill in the More Details field before submitting.", isError: true);
+            DetailsBox.Focus();
+            return;
+        }
+
         var categoryItem = CategoryCombo.SelectedItem as System.Windows.Controls.ComboBoxItem;
         var category     = categoryItem?.Tag?.ToString() ?? "Other";
-        var details      = DetailsBox.Text.Trim();
         var log          = IncludeLogCheck.IsChecked == true ? LogService.GetRecentLog(80) : "(log not included)";
         var contactName  = ContactNameBox.Text.Trim();
         var contactEmail = ContactEmailBox.Text.Trim();
@@ -136,10 +144,12 @@ public partial class ReportProblemDialog : Window
                 title, category, details, log, contactName, contactEmail,
                 screenshotBytes, screenshotFilename);
 
+            _issueUrl = $"https://github.com/{Infrastructure.AppSecrets.GitHubOwner}/{Infrastructure.AppSecrets.GitHubRepo}/issues/{issueNum}";
             ShowStatus($"Report submitted - thank you! (Issue #{issueNum})", isError: false);
-            SubmitBtn.Visibility = Visibility.Collapsed;
-            CancelBtn.Content    = "Close";
-            CancelBtn.IsEnabled  = true;
+            SubmitBtn.Visibility    = Visibility.Collapsed;
+            ViewIssueBtn.Visibility = Visibility.Visible;
+            CancelBtn.Content       = "Close";
+            CancelBtn.IsEnabled     = true;
             LogService.LogEvent("Help", $"Problem report submitted as issue #{issueNum}");
         }
         catch (Exception ex)
@@ -166,6 +176,15 @@ public partial class ReportProblemDialog : Window
             ? new SolidColorBrush(Color.FromRgb(220, 80, 80))
             : new SolidColorBrush(Color.FromRgb(80, 180, 100));
         StatusText.Visibility = Visibility.Visible;
+    }
+
+    private void ViewIssue_Click(object sender, RoutedEventArgs e)
+    {
+        if (_issueUrl == null) return;
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_issueUrl)
+        {
+            UseShellExecute = true
+        });
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();

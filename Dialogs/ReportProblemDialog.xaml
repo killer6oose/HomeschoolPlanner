@@ -63,7 +63,7 @@
 
                 <!-- Notes -->
                 <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="More details (optional)"
+                    <TextBlock Text="More details  *"
                                FontSize="12" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5" />
                     <TextBox x:Name="DetailsBox"
@@ -211,6 +211,11 @@
         <!-- ── Buttons ── -->
         <StackPanel Grid.Row="3" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="0,4,0,0">
+            <Button x:Name="ViewIssueBtn" Content="Open My Submission"
+                    Style="{DynamicResource NavButtonStyle}"
+                    Margin="0,0,8,0"
+                    Visibility="Collapsed"
+                    Click="ViewIssue_Click" />
             <Button x:Name="CancelBtn" Content="Cancel"
                     Style="{DynamicResource NavButtonStyle}"
                     Margin="0,0,8,0" Click="Cancel_Click" />
