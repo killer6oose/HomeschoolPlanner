@@ -9,6 +9,7 @@
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -17,14 +18,53 @@
                    x:Name="DialogTitle"
                    Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16" />
 
+        <!-- Template preview - shown only when the student has no subjects yet -->
+        <Border x:Name="TemplatePreviewPanel"
+                Grid.Row="1"
+                Visibility="Collapsed"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12"
+                Margin="0,0,0,10">
+            <StackPanel>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="TemplatePreviewTitle"
+                               Text="Default subjects for this grade"
+                               FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock x:Name="DismissTemplateLink"
+                               Grid.Column="1"
+                               Text="I'll make my own"
+                               FontSize="12"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Cursor="Hand"
+                               VerticalAlignment="Center"
+                               MouseLeftButtonUp="DismissTemplate_Click" />
+                </Grid>
+                <WrapPanel x:Name="TemplatePreviewList" Margin="0,0,0,10" />
+                <Button x:Name="UseDefaultsBtn"
+                        Content="Add these defaults"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        HorizontalAlignment="Left"
+                        Click="UseDefaults_Click" />
+            </StackPanel>
+        </Border>
+
         <!-- Subject list -->
-        <ListBox x:Name="SubjectList" Grid.Row="1"
+        <ListBox x:Name="SubjectList" Grid.Row="2"
                  BorderBrush="{DynamicResource BorderBrush}"
                  SelectionChanged="SubjectList_SelectionChanged"
                  Margin="0,0,0,12" />
 
         <!-- Edit form -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"

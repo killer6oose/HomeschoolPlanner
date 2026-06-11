@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Generate Report"
-        Width="500" Height="680"
-        MinWidth="440" MinHeight="580"
+        Width="500" Height="720"
+        MinWidth="440" MinHeight="600"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{DynamicResource DialogBackgroundBrush}"
@@ -11,21 +11,47 @@
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="80"   />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*"    />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />  <!-- Mode selector -->
+            <RowDefinition Height="Auto" />  <!-- Students label -->
+            <RowDefinition Height="80"   />  <!-- Students checklist -->
+            <RowDefinition Height="Auto" />  <!-- Subjects label -->
+            <RowDefinition Height="Auto" />  <!-- Subjects group hint -->
+            <RowDefinition Height="*"    />  <!-- Subjects checklist -->
+            <RowDefinition Height="Auto" />  <!-- Grade level panel -->
+            <RowDefinition Height="Auto" />  <!-- Date range -->
+            <RowDefinition Height="Auto" />  <!-- Report type -->
+            <RowDefinition Height="Auto" />  <!-- Export format -->
+            <RowDefinition Height="Auto" />  <!-- Buttons -->
         </Grid.RowDefinitions>
 
         <!-- ============================================================ -->
-        <!-- Students label + select-all -->
+        <!-- Report mode selector -->
         <!-- ============================================================ -->
-        <Grid Grid.Row="0" Margin="0,0,0,4">
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Text="Report For"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,6" />
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="ModeStudentsRadio"
+                             Content="Students"
+                             GroupName="ReportMode"
+                             IsChecked="True"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Margin="0,0,20,0"
+                             Checked="ReportMode_Changed" />
+                <RadioButton x:Name="ModeGradeRadio"
+                             Content="Grade Level (subject roster)"
+                             GroupName="ReportMode"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Checked="ReportMode_Changed" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ============================================================ -->
+        <!-- STUDENTS MODE: students label + select-all -->
+        <!-- ============================================================ -->
+        <Grid x:Name="StudentsLabelRow" Grid.Row="1" Margin="0,0,0,4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -44,9 +70,10 @@
         </Grid>
 
         <!-- ============================================================ -->
-        <!-- Students checklist -->
+        <!-- STUDENTS MODE: students checklist -->
         <!-- ============================================================ -->
-        <Border Grid.Row="1"
+        <Border x:Name="StudentsBorder"
+                Grid.Row="2"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="4"
@@ -57,9 +84,9 @@
         </Border>
 
         <!-- ============================================================ -->
-        <!-- Subjects label + select-all -->
+        <!-- STUDENTS MODE: subjects label + select-all -->
         <!-- ============================================================ -->
-        <Grid Grid.Row="2" Margin="0,0,0,4">
+        <Grid x:Name="SubjectsLabelRow" Grid.Row="3" Margin="0,0,0,4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -78,10 +105,10 @@
         </Grid>
 
         <!-- ============================================================ -->
-        <!-- Subjects checklist label row (shown when multiple students) -->
+        <!-- STUDENTS MODE: subjects group hint -->
         <!-- ============================================================ -->
         <TextBlock x:Name="SubjectGroupHint"
-                   Grid.Row="3"
+                   Grid.Row="4"
                    Visibility="Collapsed"
                    FontSize="10"
                    Foreground="{DynamicResource TextSecondaryBrush}"
@@ -89,9 +116,10 @@
                    Text="Subjects grouped by student" />
 
         <!-- ============================================================ -->
-        <!-- Subjects checklist -->
+        <!-- STUDENTS MODE: subjects checklist -->
         <!-- ============================================================ -->
-        <Border Grid.Row="4"
+        <Border x:Name="SubjectsBorder"
+                Grid.Row="5"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="4"
@@ -102,9 +130,28 @@
         </Border>
 
         <!-- ============================================================ -->
-        <!-- Date range -->
+        <!-- GRADE LEVEL MODE: grade picker panel -->
         <!-- ============================================================ -->
-        <StackPanel Grid.Row="5" Margin="0,0,0,14">
+        <StackPanel x:Name="GradeLevelPanel"
+                    Grid.Row="6"
+                    Visibility="Collapsed"
+                    Margin="0,0,0,14">
+            <TextBlock Text="Grade Level"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Margin="0,0,0,6" />
+            <ComboBox x:Name="GradeLevelCombo" Width="200" HorizontalAlignment="Left" />
+            <TextBlock Text="Exports a CSV listing every subject for all students in this grade."
+                       FontSize="11"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,6,0,0"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- ============================================================ -->
+        <!-- STUDENTS MODE: Date range -->
+        <!-- ============================================================ -->
+        <StackPanel x:Name="DateRangePanel" Grid.Row="7" Margin="0,0,0,14">
             <TextBlock Text="Date Range"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -118,9 +165,9 @@
         </StackPanel>
 
         <!-- ============================================================ -->
-        <!-- Report type -->
+        <!-- STUDENTS MODE: Report type -->
         <!-- ============================================================ -->
-        <StackPanel Grid.Row="6" Margin="0,0,0,14">
+        <StackPanel x:Name="ReportTypePanel" Grid.Row="8" Margin="0,0,0,14">
             <TextBlock Text="Report Type"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -140,9 +187,9 @@
         </StackPanel>
 
         <!-- ============================================================ -->
-        <!-- Export format -->
+        <!-- STUDENTS MODE: Export format -->
         <!-- ============================================================ -->
-        <StackPanel Grid.Row="7" Margin="0,0,0,20">
+        <StackPanel x:Name="FormatPanel" Grid.Row="9" Margin="0,0,0,20">
             <TextBlock Text="Export Format"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -164,12 +211,13 @@
         <!-- ============================================================ -->
         <!-- Buttons -->
         <!-- ============================================================ -->
-        <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="10" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Cancel"
                     Style="{DynamicResource NavButtonStyle}"
                     Margin="0,0,8,0"
                     Click="Cancel_Click" />
-            <Button Content="Generate Report"
+            <Button x:Name="GenerateBtn"
+                    Content="Generate Report"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Click="Generate_Click" />
         </StackPanel>

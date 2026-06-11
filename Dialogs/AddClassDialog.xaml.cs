@@ -35,7 +35,10 @@ public partial class AddClassDialog : Window
         DatePickerInput.SelectedDate  = selectedDate;
 
         Loaded += (_, _) =>
+        {
             ColorSwatches.Children.Add(ColorPickerHelper.BuildSwatchPanel(NewSubjectColor, ColorPreview));
+            ColorPickerHelper.AttachColorWheelPicker(NewSubjectColor, ColorPreview);
+        };
     }
 
     // -------------------------------------------------------------------------
@@ -173,70 +176,61 @@ public partial class AddClassDialog : Window
                 subject.ScheduleEndDate = RepeatEndDatePicker.SelectedDate.Value.ToString("yyyy-MM-dd");
                 subject.ScheduleEndCount = 0;
             }
-            else if (RepeatByCount.IsChecked == true && int.TryParse(RepeatCountBox.Text.Trim(), out int cnt) && cnt > 0)
+            else if (RepeatByCount.IsChecked == true)
             {
-                // Expand to specific dates: calculate the next N occurrences from today
-                var occurrenceDates = new List<string>();
-                var cursor = DateTime.Today;
-                var dayNums = days.Select(int.Parse).ToHashSet();
-                while (occurrenceDates.Count < cnt)
-                {
-                    int iso = cursor.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)cursor.DayOfWeek;
-                    if (dayNums.Contains(iso))
-                        occurrenceDates.Add(cursor.ToString("yyyy-MM-dd"));
-                    cursor = cursor.AddDays(1);
-                    if (cursor > DateTime.Today.AddYears(2)) break; // safety
-                }
-                subject.ScheduleType  = "SpecificDates";
-                subject.ScheduleDays  = "";
-                subject.ScheduleDates = string.Join(",", occurrenceDates);
-                subject.ScheduleEndType = "None";
+                subject.ScheduleEndType  = "ByCount";
+                subject.ScheduleEndDate  = "";
+                if (int.TryParse(RepeatCountBox.Text, out var n) && n > 0)
+                    subject.ScheduleEndCount = n;
+                else
+                    subject.ScheduleEndCount = 7;
             }
             else
             {
-                subject.ScheduleEndType  = "None";
+                subject.ScheduleEndType  = "Forever";
                 subject.ScheduleEndDate  = "";
                 subject.ScheduleEndCount = 0;
             }
         }
         else if (RadioMonthly.IsChecked == true)
         {
-            string monthly;
-            if (MonthlyDayNum.IsChecked == true)
+            string monthlyPattern;
+            if (MonthlyFirstDay.IsChecked == true)
             {
-                if (!int.TryParse(MonthlyDayNumBox.Text.Trim(), out int d) || d < 1 || d > 28)
-                {
-                    MessageBox.Show("Enter a day number between 1 and 28.", "Invalid day",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-                monthly = d.ToString();
+                var wd = (MonthlyWeekdayCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? "Mon";
+                monthlyPattern = $"First:{wd}";
+            }
+            else if (MonthlyLastDay.IsChecked == true)
+            {
+                var wd = (MonthlyWeekdayCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? "Mon";
+                monthlyPattern = $"Last:{wd}";
             }
             else
             {
-                var which = MonthlyFirstDay.IsChecked == true ? "First" : "Last";
-                var dayTag = (MonthlyWeekdayCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "Mon";
-                monthly = $"{which} {dayTag}";
+                monthlyPattern = $"Day:{MonthlyDayNumBox.Text.Trim()}";
             }
-            subject.ScheduleType    = "Monthly";
-            subject.ScheduleMonthly = monthly;
-            subject.ScheduleDays    = "";
-            subject.ScheduleDates   = "";
+            subject.ScheduleType     = "Monthly";
+            subject.ScheduleDays     = "";
+            subject.ScheduleDates    = "";
+            subject.ScheduleMonthly  = monthlyPattern;
+            subject.ScheduleEndType  = "Forever";
+            subject.ScheduleEndDate  = "";
+            subject.ScheduleEndCount = 0;
         }
-        else if (RadioSpecific.IsChecked == true)
+        else // RadioSpecific
         {
             if (_specificDates.Count == 0)
             {
                 MessageBox.Show("Add at least one date.", "No dates", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            var merged = _specificDates.ToList();
-            if (subject.ScheduleType == "SpecificDates" && !string.IsNullOrEmpty(subject.ScheduleDates))
-                merged = subject.ScheduleDates.Split(',').Union(merged).Distinct().OrderBy(d => d).ToList();
-
-            subject.ScheduleType  = "SpecificDates";
-            subject.ScheduleDays  = "";
-            subject.ScheduleDates = string.Join(",", merged);
+            subject.ScheduleType     = "Specific";
+            subject.ScheduleDays     = "";
+            subject.ScheduleDates    = string.Join(",", _specificDates);
+            subject.ScheduleMonthly  = "";
+            subject.ScheduleEndType  = "";
+            subject.ScheduleEndDate  = "";
+            subject.ScheduleEndCount = 0;
         }
 
         _db.UpdateSubject(subject);

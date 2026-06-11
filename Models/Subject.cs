@@ -6,6 +6,9 @@ public class Subject
     public int StudentId { get; set; }
     public string Name { get; set; } = "";
     public string Color { get; set; } = "#4A7CB5";
+    // Grade the student was in when this subject was created (e.g. "1", "2", "K").
+    // Empty string on pre-migration rows - treated as the student's current grade.
+    public string GradeKey { get; set; } = "";
     public int SortOrder { get; set; } = 0;
     public bool IsActive { get; set; } = true;
 

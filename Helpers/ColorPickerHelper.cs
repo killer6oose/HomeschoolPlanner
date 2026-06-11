@@ -2,14 +2,17 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using HomeschoolPlanner.Dialogs;
 
 namespace HomeschoolPlanner.Helpers;
 
-// Builds a color swatch grid + wires it to a hex TextBox and preview Border.
+// Builds a colour swatch grid + wires it to a hex TextBox and preview Border.
 // Call BuildSwatchPanel() and add the returned WrapPanel to your dialog's layout.
+// Call AttachColorWheelPicker() to open the full colour wheel when the hex box or
+// preview border is clicked.
 public static class ColorPickerHelper
 {
-    // 30 common colors - covers most subject color needs
+    // 30 common colors - covers most subject colour needs
     private static readonly string[] Swatches =
     {
         "#F44336", "#E91E63", "#9C27B0", "#673AB7", "#3F51B5", "#2196F3",
@@ -19,8 +22,8 @@ public static class ColorPickerHelper
         "#E53935", "#AD1457", "#6A1B9A", "#1565C0", "#00838F", "#2E7D32",
     };
 
-    // Returns a WrapPanel of color swatches.
-    // Clicking a swatch sets hexInput.Text to that hex and updates previewBorder.Background.
+    // Returns a WrapPanel of colour swatches.
+    // Clicking a swatch sets hexInput.Text and updates previewBorder.Background.
     public static WrapPanel BuildSwatchPanel(TextBox hexInput, Border previewBorder)
     {
         var panel = new WrapPanel
@@ -31,7 +34,7 @@ public static class ColorPickerHelper
 
         foreach (var hex in Swatches)
         {
-            var color = ParseHex(hex);
+            var color  = ParseHex(hex);
             var swatch = new Border
             {
                 Width           = 22,
@@ -45,17 +48,14 @@ public static class ColorPickerHelper
                 BorderBrush     = new SolidColorBrush(Color.FromArgb(40, 0, 0, 0))
             };
 
-            // Capture for the closure
-            var capturedHex    = hex;
-            var capturedColor  = color;
+            var capturedHex   = hex;
+            var capturedColor = color;
 
-            swatch.MouseEnter += (s, e) =>
-                ((Border)s).BorderBrush = new SolidColorBrush(Colors.DimGray);
-            swatch.MouseLeave += (s, e) =>
-                ((Border)s).BorderBrush = new SolidColorBrush(Color.FromArgb(40, 0, 0, 0));
-            swatch.MouseLeftButtonUp += (s, e) =>
+            swatch.MouseEnter        += (s, _) => ((Border)s).BorderBrush = new SolidColorBrush(Colors.DimGray);
+            swatch.MouseLeave        += (s, _) => ((Border)s).BorderBrush = new SolidColorBrush(Color.FromArgb(40, 0, 0, 0));
+            swatch.MouseLeftButtonUp += (_, _) =>
             {
-                hexInput.Text           = capturedHex;
+                hexInput.Text            = capturedHex;
                 previewBorder.Background = new SolidColorBrush(capturedColor);
             };
 
@@ -65,16 +65,55 @@ public static class ColorPickerHelper
         return panel;
     }
 
+    // Wires a hex TextBox + preview Border so that:
+    //   - clicking the preview border always opens the colour wheel
+    //   - clicking the hex box when it is NOT already focused opens the colour wheel
+    //     (subsequent clicks while focused allow normal text editing)
+    public static void AttachColorWheelPicker(TextBox hexInput, Border previewBorder)
+    {
+        // Preview border acts as a "open picker" button
+        previewBorder.Cursor = Cursors.Hand;
+        previewBorder.MouseLeftButtonDown += (_, _) => OpenPicker(hexInput, previewBorder);
+
+        // Hex box: first click (when not focused) opens the picker
+        hexInput.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            if (!hexInput.IsKeyboardFocused)
+            {
+                e.Handled = true;
+                OpenPicker(hexInput, previewBorder);
+            }
+        };
+    }
+
+    private static void OpenPicker(TextBox hexInput, Border previewBorder)
+    {
+        var owner = Window.GetWindow(hexInput);
+        var dlg   = new ColorPickerDialog(hexInput.Text) { Owner = owner };
+        if (dlg.ShowDialog() == true)
+        {
+            hexInput.Text            = dlg.SelectedHex;
+            previewBorder.Background = ParseBrush(dlg.SelectedHex);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared helpers
+    // -------------------------------------------------------------------------
+
     private static Color ParseHex(string hex)
     {
         try
         {
             hex = hex.TrimStart('#');
-            byte r = Convert.ToByte(hex.Substring(0, 2), 16);
-            byte g = Convert.ToByte(hex.Substring(2, 2), 16);
-            byte b = Convert.ToByte(hex.Substring(4, 2), 16);
-            return Color.FromRgb(r, g, b);
+            return Color.FromRgb(
+                Convert.ToByte(hex.Substring(0, 2), 16),
+                Convert.ToByte(hex.Substring(2, 2), 16),
+                Convert.ToByte(hex.Substring(4, 2), 16));
         }
         catch { return Color.FromRgb(0x4A, 0x7C, 0xB5); }
     }
+
+    private static SolidColorBrush ParseBrush(string hex) =>
+        new SolidColorBrush(ParseHex(hex));
 }

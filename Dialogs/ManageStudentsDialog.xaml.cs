@@ -24,6 +24,7 @@ public partial class ManageStudentsDialog : Window
         Loaded += (_, _) =>
         {
             ColorSwatches.Children.Add(ColorPickerHelper.BuildSwatchPanel(ColorBox, ColorPreview));
+            ColorPickerHelper.AttachColorWheelPicker(ColorBox, ColorPreview);
         };
 
         RefreshList();
@@ -41,9 +42,10 @@ public partial class ManageStudentsDialog : Window
         _editingStudent = StudentList.SelectedItem as Student;
         if (_editingStudent == null) return;
 
-        FormTitle.Text = "Edit Student";
-        NameBox.Text   = _editingStudent.Name;
-        ColorBox.Text  = _editingStudent.Color;
+        FormTitle.Text     = "Edit Student";
+        NameBox.Text       = _editingStudent.Name;
+        ColorBox.Text      = _editingStudent.Color;
+        SchoolYearBox.Text = _editingStudent.SchoolYear;
         DeleteBtn.Visibility = Visibility.Visible;
 
         // Select matching grade
@@ -72,11 +74,22 @@ public partial class ManageStudentsDialog : Window
         // Grade key from display name
         var gradeDisplay = GradeCombo.SelectedItem as string ?? "";
         var gradeKey     = GradeHelper.DisplayToKey(gradeDisplay);
+        var schoolYear   = SchoolYearBox.Text.Trim();
 
         if (_editingStudent == null)
         {
-            // New student
-            var student = _db.AddStudent(name, gradeKey, color);
+            // New student - pre-populate school year from app settings if the user left it blank
+            if (string.IsNullOrEmpty(schoolYear))
+            {
+                var s = AppState.Settings;
+                if (DateTime.TryParse(s.SchoolYearStart, out var syStart) &&
+                    DateTime.TryParse(s.SchoolYearEnd,   out var syEnd))
+                {
+                    schoolYear = $"{syStart.Year}-{syEnd.Year}";
+                }
+            }
+
+            var student = _db.AddStudent(name, gradeKey, color, schoolYear);
 
             // Offer to load grade template if any classes exist for this grade and pref is on
             var templateClasses = _db.GetGradeClasses(gradeKey);
@@ -94,9 +107,10 @@ public partial class ManageStudentsDialog : Window
         }
         else
         {
-            _editingStudent.Name  = name;
-            _editingStudent.Grade = gradeKey;
-            _editingStudent.Color = color;
+            _editingStudent.Name       = name;
+            _editingStudent.Grade      = gradeKey;
+            _editingStudent.Color      = color;
+            _editingStudent.SchoolYear = schoolYear;
             _db.UpdateStudent(_editingStudent);
         }
 
@@ -124,13 +138,14 @@ public partial class ManageStudentsDialog : Window
 
     private void Clear_Click(object sender, RoutedEventArgs e)
     {
-        _editingStudent  = null;
-        FormTitle.Text   = "Add Student";
-        NameBox.Text     = "";
-        ColorBox.Text    = "#4A7CB5";
+        _editingStudent    = null;
+        FormTitle.Text     = "Add Student";
+        NameBox.Text       = "";
+        ColorBox.Text      = "#4A7CB5";
+        SchoolYearBox.Text = "";
         if (ColorPreview != null)
             ColorPreview.Background = new SolidColorBrush(Color.FromRgb(0x4A, 0x7C, 0xB5));
-        DeleteBtn.Visibility    = Visibility.Collapsed;
+        DeleteBtn.Visibility     = Visibility.Collapsed;
         StudentList.SelectedItem = null;
         GradeCombo.SelectedIndex = 0;
     }

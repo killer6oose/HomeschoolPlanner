@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,9 +13,11 @@ namespace HomeschoolPlanner.Dialogs;
 public partial class ReportsDialog : Window
 {
     private readonly DatabaseService _db;
-    private List<Student> _allStudents = new();
-    private readonly HashSet<int> _checkedStudentIds = new();
-    private readonly HashSet<int> _checkedSubjectIds = new();
+
+    // Students mode - uses (student, grade) pairs instead of bare students
+    private List<StudentGradeGroup> _allGroups = new();
+    private readonly HashSet<string> _checkedGroupKeys  = new(); // key = "studentId:gradeKey"
+    private readonly HashSet<int>    _checkedSubjectIds = new();
 
     public ReportsDialog(DatabaseService db)
     {
@@ -23,7 +27,9 @@ public partial class ReportsDialog : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _allStudents = _db.GetStudents();
+        // Populate grade level combo for grade mode
+        GradeLevelCombo.ItemsSource   = GradeHelper.Grades.Select(g => g.Display).ToArray();
+        GradeLevelCombo.SelectedIndex = 0;
 
         // Default date range from school year settings
         var settings = AppState.Settings;
@@ -36,15 +42,43 @@ public partial class ReportsDialog : Window
     }
 
     // -------------------------------------------------------------------------
-    // Student checkboxes
+    // Mode toggle
+    // -------------------------------------------------------------------------
+
+    private void ReportMode_Changed(object sender, RoutedEventArgs e)
+    {
+        if (GradeLevelPanel == null) return; // fires before InitializeComponent finishes
+
+        bool gradeMode = ModeGradeRadio.IsChecked == true;
+
+        // Students mode controls
+        StudentsLabelRow.Visibility  = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+        StudentsBorder.Visibility    = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+        SubjectsLabelRow.Visibility  = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+        SubjectGroupHint.Visibility  = Visibility.Collapsed; // managed by PopulateSubjects
+        SubjectsBorder.Visibility    = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+        DateRangePanel.Visibility    = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+        ReportTypePanel.Visibility   = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+        FormatPanel.Visibility       = gradeMode ? Visibility.Collapsed : Visibility.Visible;
+
+        // Grade level mode controls
+        GradeLevelPanel.Visibility = gradeMode ? Visibility.Visible : Visibility.Collapsed;
+
+        GenerateBtn.Content = gradeMode ? "Export CSV" : "Generate Report";
+    }
+
+    // -------------------------------------------------------------------------
+    // Student-grade pair checkboxes
     // -------------------------------------------------------------------------
 
     private void PopulateStudents()
     {
         StudentPanel.Children.Clear();
-        _checkedStudentIds.Clear();
+        _checkedGroupKeys.Clear();
 
-        if (_allStudents.Count == 0)
+        _allGroups = _db.GetStudentGradePairs();
+
+        if (_allGroups.Count == 0)
         {
             StudentPanel.Children.Add(new TextBlock
             {
@@ -56,23 +90,23 @@ public partial class ReportsDialog : Window
             return;
         }
 
-        foreach (var student in _allStudents)
+        foreach (var group in _allGroups)
         {
-            _checkedStudentIds.Add(student.Id);
+            _checkedGroupKeys.Add(group.Key);
 
             var dot = new Border
             {
-                Width           = 8,
-                Height          = 8,
-                CornerRadius    = new CornerRadius(4),
-                Background      = TryParseBrush(student.Color),
-                Margin          = new Thickness(0, 0, 4, 0),
+                Width             = 8,
+                Height            = 8,
+                CornerRadius      = new CornerRadius(4),
+                Background        = TryParseBrush(group.StudentColor),
+                Margin            = new Thickness(0, 0, 4, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
 
             var label = new TextBlock
             {
-                Text              = student.Name,
+                Text              = group.Label,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground        = (Brush)FindResource("TextPrimaryBrush")
             };
@@ -81,16 +115,15 @@ public partial class ReportsDialog : Window
             inner.Children.Add(dot);
             inner.Children.Add(label);
 
-            var capturedStudent = student;
             var cb = new CheckBox
             {
                 Content   = inner,
-                Tag       = student.Id,
+                Tag       = group.Key,
                 IsChecked = true,
                 Margin    = new Thickness(0, 0, 16, 4)
             };
-            cb.Checked   += (_, _) => { _checkedStudentIds.Add((int)cb.Tag);    PopulateSubjects(); };
-            cb.Unchecked += (_, _) => { _checkedStudentIds.Remove((int)cb.Tag); PopulateSubjects(); };
+            cb.Checked   += (_, _) => { _checkedGroupKeys.Add((string)cb.Tag);    PopulateSubjects(); };
+            cb.Unchecked += (_, _) => { _checkedGroupKeys.Remove((string)cb.Tag); PopulateSubjects(); };
             StudentPanel.Children.Add(cb);
         }
 
@@ -104,11 +137,10 @@ public partial class ReportsDialog : Window
         SelectAllStudentsLink.Text = target ? "Deselect all" : "Select all";
         foreach (var cb in StudentPanel.Children.OfType<CheckBox>())
             cb.IsChecked = target;
-        // PopulateSubjects() fires via the Checked/Unchecked events above
     }
 
     // -------------------------------------------------------------------------
-    // Subject checkboxes
+    // Subject checkboxes (scoped to each selected student + grade pair)
     // -------------------------------------------------------------------------
 
     private void PopulateSubjects()
@@ -116,11 +148,11 @@ public partial class ReportsDialog : Window
         SubjectPanel.Children.Clear();
         _checkedSubjectIds.Clear();
 
-        var checkedStudents = _allStudents.Where(s => _checkedStudentIds.Contains(s.Id)).ToList();
-        bool multiStudent   = checkedStudents.Count > 1;
-        SubjectGroupHint.Visibility = multiStudent ? Visibility.Visible : Visibility.Collapsed;
+        var checkedGroups = _allGroups.Where(g => _checkedGroupKeys.Contains(g.Key)).ToList();
+        bool multiGroup   = checkedGroups.Count > 1;
+        SubjectGroupHint.Visibility = multiGroup ? Visibility.Visible : Visibility.Collapsed;
 
-        if (checkedStudents.Count == 0)
+        if (checkedGroups.Count == 0)
         {
             SubjectPanel.Children.Add(new TextBlock
             {
@@ -131,20 +163,24 @@ public partial class ReportsDialog : Window
             return;
         }
 
-        foreach (var student in checkedStudents)
+        // We need the student's current grade for the empty-GradeKey fallback
+        var allStudents   = _db.GetStudents().ToDictionary(s => s.Id);
+
+        foreach (var group in checkedGroups)
         {
-            var subjects = _db.GetSubjects(student.Id, activeOnly: false);
+            var currentGrade = allStudents.TryGetValue(group.StudentId, out var stu) ? stu.Grade : group.GradeKey;
+            var subjects     = _db.GetSubjectsForGroup(group.StudentId, group.GradeKey, currentGrade);
+
             if (subjects.Count == 0) continue;
 
-            // Group header when multiple students are selected
-            if (multiStudent)
+            if (multiGroup)
             {
                 var header = new TextBlock
                 {
-                    Text       = student.Name,
+                    Text       = group.Label,
                     FontWeight = FontWeights.SemiBold,
                     FontSize   = 11,
-                    Foreground = TryParseBrush(student.Color),
+                    Foreground = TryParseBrush(group.StudentColor),
                     Margin     = new Thickness(0, SubjectPanel.Children.Count == 0 ? 4 : 8, 0, 2)
                 };
                 SubjectPanel.Children.Add(header);
@@ -221,6 +257,16 @@ public partial class ReportsDialog : Window
 
     private void Generate_Click(object sender, RoutedEventArgs e)
     {
+        if (ModeGradeRadio.IsChecked == true)
+        {
+            GenerateGradeLevelCsv();
+            return;
+        }
+        GenerateStudentReport();
+    }
+
+    private void GenerateStudentReport()
+    {
         if (StartPicker.SelectedDate == null || EndPicker.SelectedDate == null)
         {
             MessageBox.Show("Please select a start and end date.", "Date required",
@@ -234,19 +280,31 @@ public partial class ReportsDialog : Window
             return;
         }
 
-        var students = _allStudents.Where(s => _checkedStudentIds.Contains(s.Id)).ToList();
-        if (students.Count == 0)
+        var checkedGroups = _allGroups.Where(g => _checkedGroupKeys.Contains(g.Key)).ToList();
+        if (checkedGroups.Count == 0)
         {
             MessageBox.Show("Select at least one student.", "Nothing to report",
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        // Collect subjects for checked students that are also checked in the subject list
-        var subjects = students
-            .SelectMany(s => _db.GetSubjects(s.Id, activeOnly: false))
-            .Where(s => _checkedSubjectIds.Contains(s.Id))
-            .ToList();
+        // Build the student list (unique by Id) and the filtered subjects
+        var allStudents  = _db.GetStudents().ToDictionary(s => s.Id);
+        var studentsSeen = new HashSet<int>();
+        var students     = new List<Student>();
+        var subjects     = new List<Subject>();
+
+        foreach (var group in checkedGroups)
+        {
+            if (studentsSeen.Add(group.StudentId) && allStudents.TryGetValue(group.StudentId, out var stu))
+                students.Add(stu);
+
+            var currentGrade = allStudents.TryGetValue(group.StudentId, out var s2) ? s2.Grade : group.GradeKey;
+            var groupSubjects = _db.GetSubjectsForGroup(group.StudentId, group.GradeKey, currentGrade)
+                                   .Where(s => _checkedSubjectIds.Contains(s.Id));
+            subjects.AddRange(groupSubjects);
+        }
+
         if (subjects.Count == 0)
         {
             MessageBox.Show("Select at least one subject.", "Nothing to report",
@@ -285,7 +343,7 @@ public partial class ReportsDialog : Window
         {
             ReportBuilder.Generate(opts, _db, dlg.FileName);
             var result = MessageBox.Show(
-                $"Report saved.\n\nOpen it now?",
+                "Report saved.\n\nOpen it now?",
                 "Report saved",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
@@ -306,6 +364,111 @@ public partial class ReportsDialog : Window
         }
     }
 
+    // Exports a CSV roster of all subjects for the selected grade level
+    private void GenerateGradeLevelCsv()
+    {
+        var gradeDisplay = GradeLevelCombo.SelectedItem as string ?? "";
+        if (string.IsNullOrEmpty(gradeDisplay))
+        {
+            MessageBox.Show("Select a grade level.", "Grade required",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var gradeKey = GradeHelper.DisplayToKey(gradeDisplay);
+        var rows     = _db.GetSubjectsByGrade(gradeKey);
+
+        if (rows.Count == 0)
+        {
+            MessageBox.Show($"No subjects found for {gradeDisplay}.", "Nothing to export",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dlg = new SaveFileDialog
+        {
+            Title        = "Export Grade Roster",
+            Filter       = "CSV files (*.csv)|*.csv",
+            FileName     = $"SubjectRoster_{gradeKey}_{DateTime.Today:yyyyMMdd}.csv",
+            DefaultExt   = ".csv",
+            AddExtension = true
+        };
+        if (dlg.ShowDialog(this) != true) return;
+
+        try
+        {
+            var csv = BuildGradeRosterCsv(gradeDisplay, rows);
+            File.WriteAllText(dlg.FileName, csv, Encoding.UTF8);
+
+            var result = MessageBox.Show(
+                "Roster exported.\n\nOpen it now?",
+                "Export complete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (result == MessageBoxResult.Yes)
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName        = dlg.FileName,
+                    UseShellExecute = true
+                });
+
+            DialogResult = true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Export failed:\n\n{ex.Message}", "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // Builds the CSV content for the grade-level subject roster
+    private static string BuildGradeRosterCsv(string gradeDisplay, List<(string StudentName, Subject Subject)> rows)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Subject Roster - {gradeDisplay}");
+        sb.AppendLine($"Exported,{DateTime.Today:yyyy-MM-dd}");
+        sb.AppendLine();
+        sb.AppendLine("Student,Subject,Schedule,Active");
+
+        foreach (var (studentName, subject) in rows)
+        {
+            var schedule = subject.ScheduleType switch
+            {
+                "EveryDay"    => "Every school day",
+                "DaysOfWeek"  => $"Days: {ExpandDayNumbers(subject.ScheduleDays)}",
+                "SpecificDates" => "Specific dates",
+                "Monthly"     => $"Monthly: {subject.ScheduleMonthly}",
+                _             => "None"
+            };
+
+            sb.AppendLine($"{CsvEscape(studentName)},{CsvEscape(subject.Name)},{CsvEscape(schedule)},{(subject.IsActive ? "Yes" : "No")}");
+        }
+
+        return sb.ToString();
+    }
+
+    // Converts ISO day numbers (1=Mon ... 7=Sun) to readable abbreviations
+    private static string ExpandDayNumbers(string scheduleDays)
+    {
+        if (string.IsNullOrEmpty(scheduleDays)) return "";
+        var map = new Dictionary<string, string>
+        {
+            ["1"] = "Mon", ["2"] = "Tue", ["3"] = "Wed",
+            ["4"] = "Thu", ["5"] = "Fri", ["6"] = "Sat", ["7"] = "Sun"
+        };
+        return string.Join(", ", scheduleDays.Split(',')
+            .Select(d => map.TryGetValue(d.Trim(), out var name) ? name : d.Trim()));
+    }
+
+    // Escapes a value for CSV - wraps in quotes if it contains a comma, quote, or newline
+    private static string CsvEscape(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
+
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 
     // -------------------------------------------------------------------------
@@ -316,7 +479,7 @@ public partial class ReportsDialog : Window
     {
         try
         {
-            var color = (Color)ColorConverter.ConvertFromString(hex);
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
             return new SolidColorBrush(color);
         }
         catch

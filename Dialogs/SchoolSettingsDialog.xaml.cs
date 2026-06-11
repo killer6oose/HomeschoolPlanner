@@ -50,6 +50,7 @@ public partial class SchoolSettingsDialog : Window
 
         // Wire color swatches
         ClassColorSwatches.Children.Add(ColorPickerHelper.BuildSwatchPanel(ClassColorBox, ClassColorPreview));
+        ColorPickerHelper.AttachColorWheelPicker(ClassColorBox, ClassColorPreview);
     }
 
     // -------------------------------------------------------------------------

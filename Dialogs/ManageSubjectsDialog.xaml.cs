@@ -4,6 +4,7 @@ using System.Windows.Media;
 using HomeschoolPlanner.Data;
 using HomeschoolPlanner.Helpers;
 using HomeschoolPlanner.Models;
+using System.Windows.Input;
 
 namespace HomeschoolPlanner.Dialogs;
 
@@ -23,6 +24,7 @@ public partial class ManageSubjectsDialog : Window
         Loaded += (_, _) =>
         {
             ColorSwatches.Children.Add(ColorPickerHelper.BuildSwatchPanel(ColorBox, ColorPreview));
+            ColorPickerHelper.AttachColorWheelPicker(ColorBox, ColorPreview);
         };
 
         RefreshList();
@@ -33,6 +35,76 @@ public partial class ManageSubjectsDialog : Window
         var subjects = _db.GetSubjects(_student.Id, activeOnly: false);
         SubjectList.DisplayMemberPath = "Name";
         SubjectList.ItemsSource       = subjects;
+
+        // Show the grade template preview only when the student has no subjects at all.
+        // Once any subject exists (custom or from template), we never show the preview again.
+        if (subjects.Count == 0 && !string.IsNullOrEmpty(_student.Grade))
+        {
+            var templates = _db.GetGradeClasses(_student.Grade);
+            if (templates.Count > 0)
+            {
+                TemplatePreviewTitle.Text = $"Default subjects for {GradeHelper.KeyToDisplay(_student.Grade)}";
+                BuildTemplatePreviewList(templates);
+                TemplatePreviewPanel.Visibility = Visibility.Visible;
+                return;
+            }
+        }
+
+        // Either subjects exist or no template is available - keep the preview hidden
+        TemplatePreviewPanel.Visibility = Visibility.Collapsed;
+    }
+
+    // Populates the WrapPanel with read-only subject name chips from the template
+    private void BuildTemplatePreviewList(List<GradeClass> templates)
+    {
+        TemplatePreviewList.Children.Clear();
+        foreach (var t in templates)
+        {
+            var chip = new Border
+            {
+                Background      = TryParseBrush(t.Color, 0.15),
+                BorderBrush     = TryParseBrush(t.Color, 1.0),
+                BorderThickness = new Thickness(1),
+                CornerRadius    = new CornerRadius(4),
+                Padding         = new Thickness(8, 3, 8, 3),
+                Margin          = new Thickness(0, 0, 6, 6)
+            };
+            chip.Child = new TextBlock
+            {
+                Text       = t.Name,
+                FontSize   = 12,
+                Foreground = (Brush)FindResource("TextPrimaryBrush")
+            };
+            TemplatePreviewList.Children.Add(chip);
+        }
+    }
+
+    // "Add these defaults" - apply the grade template and refresh
+    private void UseDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        _db.ApplyGradeTemplate(_student.Id, _student.Grade);
+        RefreshList();
+    }
+
+    // "I'll make my own" - dismiss the preview so the user can add subjects manually
+    private void DismissTemplate_Click(object sender, MouseButtonEventArgs e)
+    {
+        TemplatePreviewPanel.Visibility = Visibility.Collapsed;
+    }
+
+    // Returns a brush from a hex color with optional alpha (0.0-1.0)
+    private static Brush TryParseBrush(string hex, double alpha = 1.0)
+    {
+        try
+        {
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            color.A = (byte)(alpha * 255);
+            return new SolidColorBrush(color);
+        }
+        catch
+        {
+            return Brushes.Gray;
+        }
     }
 
     private void SubjectList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -78,7 +150,7 @@ public partial class ManageSubjectsDialog : Window
     private void ScheduleType_Changed(object sender, RoutedEventArgs e)
     {
         if (DaysOfWeekPanel == null || SpecificDatesPanel == null) return;
-        DaysOfWeekPanel.Visibility   = RadioDaysOfWeek.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        DaysOfWeekPanel.Visibility    = RadioDaysOfWeek.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SpecificDatesPanel.Visibility = RadioSpecific.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -151,7 +223,9 @@ public partial class ManageSubjectsDialog : Window
                 Color         = color,
                 ScheduleType  = scheduleType,
                 ScheduleDays  = scheduleDays,
-                ScheduleDates = scheduleDates
+                ScheduleDates = scheduleDates,
+                // Stamp with the student's current grade so reports can separate by grade level
+                GradeKey      = _student.Grade
             });
         }
         else
@@ -186,13 +260,13 @@ public partial class ManageSubjectsDialog : Window
 
     private void Clear_Click(object sender, RoutedEventArgs e)
     {
-        _editingSubject      = null;
-        FormTitle.Text       = "Add Subject";
-        NameBox.Text         = "";
-        ColorBox.Text        = "#4A7CB5";
+        _editingSubject       = null;
+        FormTitle.Text        = "Add Subject";
+        NameBox.Text          = "";
+        ColorBox.Text         = "#4A7CB5";
         SpecificDatesBox.Text = "";
-        RadioEveryDay.IsChecked = true;
-        DeleteBtn.Visibility = Visibility.Collapsed;
+        RadioEveryDay.IsChecked  = true;
+        DeleteBtn.Visibility     = Visibility.Collapsed;
         SubjectList.SelectedItem = null;
     }
 

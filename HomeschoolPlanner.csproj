@@ -9,8 +9,12 @@
     <AssemblyName>HomeschoolPlanner</AssemblyName>
     <RootNamespace>HomeschoolPlanner</RootNamespace>
     <ApplicationIcon>planner.ico</ApplicationIcon>
-    <Version>1.5.5</Version>
+    <Version>1.7.1</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="installer-icon.bmp" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
@@ -19,6 +23,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\pinkBackground.png" />
+    <Resource Include="installer-icon.bmp" />
   </ItemGroup>
 
 </Project>

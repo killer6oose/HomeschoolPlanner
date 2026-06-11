@@ -1,0 +1,74 @@
+<Window x:Class="HomeschoolPlanner.Dialogs.ColorPickerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Color Picker"
+        Width="294" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource DialogBackgroundBrush}">
+
+    <Grid Margin="16,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />   <!-- wheel -->
+            <RowDefinition Height="Auto" />   <!-- brightness -->
+            <RowDefinition Height="Auto" />   <!-- preview + hex -->
+            <RowDefinition Height="Auto" />   <!-- swatches -->
+            <RowDefinition Height="Auto" />   <!-- buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- Colour wheel image + crosshair overlay -->
+        <Grid Grid.Row="0" x:Name="WheelContainer"
+              Width="210" Height="210" HorizontalAlignment="Center"
+              Background="Transparent" Cursor="Cross"
+              MouseDown="WheelContainer_MouseDown"
+              MouseMove="WheelContainer_MouseMove"
+              MouseUp="WheelContainer_MouseUp">
+            <Image x:Name="WheelImage" Width="210" Height="210"
+                   IsHitTestVisible="False" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <Canvas x:Name="WheelOverlay" Width="210" Height="210"
+                    IsHitTestVisible="False"/>
+        </Grid>
+
+        <!-- Brightness strip -->
+        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+            <TextBlock Text="Brightness"
+                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,0,0,4"/>
+            <Canvas x:Name="BrightnessCanvas" Height="20"
+                    Cursor="Hand"
+                    MouseDown="Brightness_MouseDown"
+                    MouseMove="Brightness_MouseMove"
+                    MouseUp="Brightness_MouseUp"/>
+        </StackPanel>
+
+        <!-- Preview swatch + hex input -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="44"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border x:Name="ColorPreviewBig"
+                    Height="32" CornerRadius="6"
+                    Background="#4A7CB5"/>
+            <TextBox x:Name="HexInput"
+                     Grid.Column="1" Margin="10,0,0,0"
+                     FontFamily="Consolas" FontSize="13"
+                     VerticalContentAlignment="Center"
+                     TextChanged="HexInput_TextChanged"/>
+        </Grid>
+
+        <!-- Swatches (populated in code) -->
+        <WrapPanel x:Name="SwatchesHost" Grid.Row="3" Margin="0,10,0,0"/>
+
+        <!-- OK / Cancel -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Cancel"
+                    Style="{DynamicResource NavButtonStyle}"
+                    Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button Content="OK"
+                    Style="{DynamicResource PrimaryButtonStyle}"
+                    Click="OK_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

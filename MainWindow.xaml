@@ -5,7 +5,7 @@
         Height="780" Width="1200"
         MinHeight="600" MinWidth="800"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource BackgroundBrush}">
+        Background="{DynamicResource BackgroundBrush}" Icon="/installer-icon.bmp">
 
     <DockPanel>
 
@@ -18,56 +18,65 @@
               Foreground="{DynamicResource TextPrimaryBrush}"
               BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="0,0,0,1">
-            <MenuItem Header="File" Foreground="{DynamicResource TextPrimaryBrush}">
-                <MenuItem Header="Preferences" Click="Preferences_Click">
+
+            <MenuItem Header="File" Foreground="{DynamicResource TextPrimaryBrush}" Click="MenuItem_Click">
+                <MenuItem Header="Preferences" Click="Preferences_Click" BorderThickness="1,1,1,1">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <Separator />
-                <MenuItem Header="Take a Tour" Click="TakeTour_Click">
+                <MenuItem Header="Take a Tour" Click="TakeTour_Click" BorderThickness="1,1,1,1">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <Separator />
-                <MenuItem Header="About" Click="About_Click">
+                <MenuItem Header="Open Logs Folder" Click="OpenLogsFolder_Click" BorderThickness="1,1,1,1">
+                    <MenuItem.Icon>
+                        <TextBlock Text="&#x1F4C2;" FontSize="12" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="About" Click="About_Click" BorderThickness="1,1,1,1">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
+
             <MenuItem Header="School Settings" Foreground="{DynamicResource TextPrimaryBrush}"
                       Click="SchoolSettings_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
                 </MenuItem.Icon>
             </MenuItem>
+
             <MenuItem Header="Resources" Foreground="{DynamicResource TextPrimaryBrush}"
                       Click="Resources_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="&#xE736;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
                 </MenuItem.Icon>
             </MenuItem>
+
             <MenuItem Header="Reports" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="Reports_Click">
+                      Click="Reports_Click" Margin="0,0,1,0">
                 <MenuItem.Icon>
                     <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
                 </MenuItem.Icon>
             </MenuItem>
+
             <MenuItem Header="Help" Foreground="{DynamicResource TextPrimaryBrush}"
                       Click="Help_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="&#xE897;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" />
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
                 </MenuItem.Icon>
             </MenuItem>
+
         </Menu>
 
         <!-- ============================================================ -->
@@ -117,7 +126,6 @@
                         Margin="6,0,0,0"
                         Click="ManageSubjects_Click" />
 
-
             </StackPanel>
         </Border>
 
@@ -133,31 +141,39 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <!-- Center: Date navigation -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal"
-                            HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="&#8592;" Style="{DynamicResource NavButtonStyle}"
-                            Width="32" Click="PrevPeriod_Click" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                    <Button Style="{DynamicResource NavButtonStyle}" Width="35" Click="PrevPeriod_Click">
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                    </Button>
+
                     <Button Content="Today"
                             Style="{DynamicResource NavButtonStyle}"
                             Margin="6,0"
                             Click="Today_Click" />
+
+                    <Button Style="{DynamicResource NavButtonStyle}" Width="35" Click="NextPeriod_Click">
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                    </Button>
+
                     <TextBlock x:Name="PeriodLabel"
                                VerticalAlignment="Center"
                                FontSize="{DynamicResource AppFontSize}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                Margin="8,0"
-                               MinWidth="220"
-                               TextAlignment="Center" />
-                    <Button Content="&#8594;" Style="{DynamicResource NavButtonStyle}"
-                            Width="32" Click="NextPeriod_Click" />
+                               MinWidth="200"
+                               TextAlignment="Center"
+                               Width="200" />
                 </StackPanel>
 
                 <!-- Right: View toggles -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="DayViewBtn"
                             Content="Day"
                             Style="{DynamicResource NavButtonStyle}"
@@ -176,7 +192,9 @@
             </Grid>
         </Border>
 
+        <!-- ============================================================ -->
         <!-- Main content area -->
+        <!-- ============================================================ -->
         <ContentControl x:Name="MainContent" />
 
     </DockPanel>

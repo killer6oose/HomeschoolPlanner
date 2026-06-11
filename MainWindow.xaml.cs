@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using HomeschoolPlanner.Data;
@@ -124,6 +125,15 @@ public partial class MainWindow : Window
 
     private void TakeTour_Click(object sender, RoutedEventArgs e) => StartTour();
 
+    private void OpenLogsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "HomeschoolPlanner");
+        Directory.CreateDirectory(folder);
+        System.Diagnostics.Process.Start("explorer.exe", folder);
+    }
+
     private void Help_Click(object sender, RoutedEventArgs e)
     {
         LogService.LogEvent("Help", "Opened Report a Problem dialog");
@@ -198,10 +208,10 @@ public partial class MainWindow : Window
             _splitViewActive = true;
 
             // Update toolbar appearance
-            SplitViewBtn.Content    = "Single View";
+            SplitViewBtn.Content          = "Single View";
             SingleStudentPanel.Visibility = Visibility.Collapsed;
             SplitViewPanel.Visibility     = Visibility.Visible;
-            SplitStudentLabel.Text  = string.Join(", ", _splitStudents.Select(s => s.Name));
+            SplitStudentLabel.Text        = string.Join(", ", _splitStudents.Select(s => s.Name));
 
             InvalidateViews();
             RefreshCurrentView();
@@ -369,7 +379,7 @@ public partial class MainWindow : Window
         RefreshCurrentView();
     }
 
-    private void Today_Click(object sender, RoutedEventArgs e)
+    private void TodayBtn_Click(object sender, RoutedEventArgs e)
     {
         _currentDate = DateTime.Today;
         UpdatePeriodLabel();
@@ -378,134 +388,75 @@ public partial class MainWindow : Window
 
     private void SwitchView_Click(object sender, RoutedEventArgs e)
     {
-        var view = (string)((Button)sender).Tag;
-        LogService.LogEvent("Navigate", $"Switched to {view} view");
-        ShowView(view);
+        if (sender is FrameworkElement fe && fe.Tag is string view)
+            ShowView(view);
+    }
+
+    private void Today_Click(object sender, RoutedEventArgs e)
+    {
+        _currentDate = DateTime.Today;
+        UpdatePeriodLabel();
+        RefreshCurrentView();
+    }
+
+    private static DateTime GetMonday(DateTime date)
+    {
+        int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        return date.AddDays(-diff).Date;
     }
 
     // -------------------------------------------------------------------------
-    // Manage dialogs
+    // Menu handlers
     // -------------------------------------------------------------------------
 
     private void Preferences_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new PreferencesDialog(_db) { Owner = this };
-        if (dlg.ShowDialog() == true)
-        {
-            // Theme/font already applied by PreferencesDialog.Apply_Click
-            // Rebuild views so colors refresh
-            InvalidateViews();
-            RefreshCurrentView();
-        }
-    }
-
-    private void SchoolSettings_Click(object sender, RoutedEventArgs e)
-    {
-        LogService.LogEvent("Dialog", "Opened School Settings");
-        var dlg = new SchoolSettingsDialog(_db, 0) { Owner = this };
-        if (dlg.ShowDialog() == true)
-        {
-            InvalidateViews();
-            RefreshCurrentView();
-        }
-    }
-
-    private void Resources_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new ResourcesDialog(_db) { Owner = this };
-        dlg.ShowDialog();
-    }
-
-    private void Reports_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new ReportsDialog(_db) { Owner = this };
-        dlg.ShowDialog();
-    }
-
-    private void About_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new AboutDialog { Owner = this };
-        dlg.ShowDialog();
+        new PreferencesDialog(_db) { Owner = this }.ShowDialog();
+        // Re-apply theme/settings changes
+        InvalidateViews();
+        RefreshCurrentView();
     }
 
     private void ManageStudents_Click(object sender, RoutedEventArgs e)
     {
-        LogService.LogEvent("Dialog", "Opened Manage Students");
-        var dlg = new ManageStudentsDialog(_db);
-        dlg.Owner = this;
-        dlg.ShowDialog();
+        new ManageStudentsDialog(_db) { Owner = this }.ShowDialog();
         ReloadStudents();
     }
 
     private void ManageSubjects_Click(object sender, RoutedEventArgs e)
     {
-        LogService.LogEvent("Dialog", "Opened Manage Subjects");
-        // In split mode, pick which student's subjects to manage
-        Student? target = _splitViewActive
-            ? PickStudentForSubjectManagement()
-            : _selectedStudent;
-
-        if (target == null)
-        {
-            MessageBox.Show("Select a student first.", "No student",
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var dlg = new ManageSubjectsDialog(_db, target);
-        dlg.Owner = this;
-        dlg.ShowDialog();
+        if (_selectedStudent == null) return;
+        // Reload student from DB in case grade changed
+        var fresh = _db.GetStudents().FirstOrDefault(s => s.Id == _selectedStudent.Id) ?? _selectedStudent;
+        new ManageSubjectsDialog(_db, fresh) { Owner = this }.ShowDialog();
         InvalidateViews();
         RefreshCurrentView();
     }
 
-    // When in split mode, ask which student to manage subjects for
-    private Student? PickStudentForSubjectManagement()
+    private void SchoolSettings_Click(object sender, RoutedEventArgs e)
     {
-        if (_splitStudents.Count == 1) return _splitStudents[0];
-
-        var picker = new Window
-        {
-            Title                   = "Manage Subjects For",
-            Width                   = 280,
-            Height                  = 200,
-            WindowStartupLocation   = WindowStartupLocation.CenterOwner,
-            Owner                   = this,
-            Background              = System.Windows.Media.Brushes.White,
-            ResizeMode              = ResizeMode.NoResize
-        };
-
-        var panel = new StackPanel { Margin = new Thickness(16) };
-        panel.Children.Add(new TextBlock
-        {
-            Text     = "Which student?",
-            FontSize = 14,
-            FontWeight = FontWeights.SemiBold,
-            Margin   = new Thickness(0, 0, 0, 12)
-        });
-
-        Student? result = null;
-        foreach (var s in _splitStudents)
-        {
-            var capturedStudent = s;
-            var btn = new Button
-            {
-                Content = s.Name,
-                Style   = (Style)FindResource("NavButtonStyle"),
-                Margin  = new Thickness(0, 0, 0, 8)
-            };
-            btn.Click += (_, _) => { result = capturedStudent; picker.DialogResult = true; };
-            panel.Children.Add(btn);
-        }
-
-        picker.Content = panel;
-        picker.ShowDialog();
-        return result;
+        new SchoolSettingsDialog(_db) { Owner = this }.ShowDialog();
+        InvalidateViews();
+        RefreshCurrentView();
     }
 
-    private static DateTime GetMonday(DateTime date)
+    private void Resources_Click(object sender, RoutedEventArgs e)
     {
-        int diff = ((int)date.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        return date.AddDays(-diff).Date;
+        new ResourcesDialog(_db) { Owner = this }.ShowDialog();
+    }
+
+    private void Reports_Click(object sender, RoutedEventArgs e)
+    {
+        new ReportsDialog(_db) { Owner = this }.ShowDialog();
+    }
+
+    private void About_Click(object sender, RoutedEventArgs e)
+    {
+        new AboutDialog { Owner = this }.ShowDialog();
+    }
+
+    private void MenuItem_Click(object sender, RoutedEventArgs e)
+    {
+
     }
 }

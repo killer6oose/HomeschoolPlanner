@@ -19,6 +19,9 @@ public partial class LessonEditDialog : Window
     // Working copy of lesson items - edited in-dialog, saved on Save_Click
     private readonly List<LessonItem> _items = new();
 
+    // -1 means "add mode"; >= 0 means the index being edited
+    private int _editingItemIdx = -1;
+
     public LessonEditDialog(DatabaseService db, Student student, Subject subject, DateTime date, LessonEntry? existingEntry)
     {
         InitializeComponent();
@@ -51,6 +54,9 @@ public partial class LessonEditDialog : Window
         {
             RefreshItemsList();
             LoadResources();
+            // Show "Add to all students" only when more than one student exists
+            if (_db.GetStudents().Count > 1)
+                AddToAllCheck.Visibility = Visibility.Visible;
             NewLessonTitle.Focus();
         };
     }
@@ -72,7 +78,11 @@ public partial class LessonEditDialog : Window
                 BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
                 BorderThickness = new Thickness(0, 0, 0, 1),
                 Padding         = new Thickness(0, 4, 0, 4),
-                Margin          = new Thickness(0, 0, 0, 2)
+                Margin          = new Thickness(0, 0, 0, 2),
+                // Highlight the row currently being edited
+                Background      = (idx == _editingItemIdx)
+                    ? new SolidColorBrush(Color.FromArgb(0x18, 0x4A, 0x7C, 0xB5))
+                    : null
             };
 
             var grid = new Grid();
@@ -91,16 +101,16 @@ public partial class LessonEditDialog : Window
             if (!string.IsNullOrWhiteSpace(item.SubTitle))
                 textCol.Children.Add(new TextBlock
                 {
-                    Text         = $"   {item.SubTitle}",
-                    FontSize     = 11,
-                    Foreground   = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80)),
-                    TextWrapping = TextWrapping.Wrap,
+                    Text            = $"   {item.SubTitle}",
+                    FontSize        = 11,
+                    Foreground      = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80)),
+                    TextWrapping    = TextWrapping.Wrap,
                     TextDecorations = item.IsComplete ? TextDecorations.Strikethrough : null
                 });
             Grid.SetColumn(textCol, 0);
             grid.Children.Add(textCol);
 
-            // Buttons: check, move up, move down, remove
+            // Buttons: check, edit, move up, move down, remove
             var btns = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
 
             var chkBtn = new Button
@@ -112,6 +122,16 @@ public partial class LessonEditDialog : Window
             };
             chkBtn.Click += (_, _) => { _items[idx].IsComplete = !_items[idx].IsComplete; RefreshItemsList(); };
             btns.Children.Add(chkBtn);
+
+            var editBtn = new Button
+            {
+                Content = "✎",
+                Style   = (Style)FindResource("NavButtonStyle"),
+                Padding = new Thickness(4, 2, 4, 2),
+                ToolTip = "Edit this lesson"
+            };
+            editBtn.Click += (_, _) => BeginEditItem(idx);
+            btns.Children.Add(editBtn);
 
             if (i > 0)
             {
@@ -128,13 +148,19 @@ public partial class LessonEditDialog : Window
 
             var removeBtn = new Button
             {
-                Content   = "✕",
-                Style     = (Style)FindResource("NavButtonStyle"),
-                Padding   = new Thickness(4, 2, 4, 2),
+                Content    = "✕",
+                Style      = (Style)FindResource("NavButtonStyle"),
+                Padding    = new Thickness(4, 2, 4, 2),
                 Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0x22, 0x22)),
-                ToolTip   = "Remove this lesson"
+                ToolTip    = "Remove this lesson"
             };
-            removeBtn.Click += (_, _) => { _items.RemoveAt(idx); RefreshItemsList(); };
+            removeBtn.Click += (_, _) =>
+            {
+                // If we were editing this item, cancel the edit first
+                if (_editingItemIdx == idx) ResetEditForm();
+                _items.RemoveAt(idx);
+                RefreshItemsList();
+            };
             btns.Children.Add(removeBtn);
 
             Grid.SetColumn(btns, 1);
@@ -144,21 +170,60 @@ public partial class LessonEditDialog : Window
         }
     }
 
+    // Populate the form fields for editing an existing item
+    private void BeginEditItem(int idx)
+    {
+        _editingItemIdx             = idx;
+        NewLessonTitle.Text         = _items[idx].Title;
+        NewLessonSubTitle.Text      = _items[idx].SubTitle;
+        AddLessonFormTitle.Text     = "Edit lesson";
+        AddLessonBtn.Content        = "Update Lesson";
+        CancelEditBtn.Visibility    = Visibility.Visible;
+        NewLessonTitle.Focus();
+        RefreshItemsList(); // re-render to highlight the row
+    }
+
+    // Reset the form back to "add" mode
+    private void ResetEditForm()
+    {
+        _editingItemIdx             = -1;
+        NewLessonTitle.Clear();
+        NewLessonSubTitle.Clear();
+        AddLessonFormTitle.Text     = "Add a lesson";
+        AddLessonBtn.Content        = "+ Add Lesson";
+        CancelEditBtn.Visibility    = Visibility.Collapsed;
+    }
+
     private void AddLesson_Click(object sender, RoutedEventArgs e)
     {
         var title = NewLessonTitle.Text.Trim();
         if (string.IsNullOrEmpty(title)) return;
 
-        _items.Add(new LessonItem
+        if (_editingItemIdx >= 0)
         {
-            Title    = title,
-            SubTitle = NewLessonSubTitle.Text.Trim(),
-            SortOrder = _items.Count
-        });
+            // Update existing item in place
+            _items[_editingItemIdx].Title    = title;
+            _items[_editingItemIdx].SubTitle = NewLessonSubTitle.Text.Trim();
+        }
+        else
+        {
+            // Add new item
+            _items.Add(new LessonItem
+            {
+                Title     = title,
+                SubTitle  = NewLessonSubTitle.Text.Trim(),
+                SortOrder = _items.Count
+            });
+        }
 
-        NewLessonTitle.Clear();
-        NewLessonSubTitle.Clear();
+        ResetEditForm();
+        RefreshItemsList();
         NewLessonTitle.Focus();
+    }
+
+    private void CancelEdit_Click(object sender, RoutedEventArgs e)
+    {
+        ResetEditForm();
         RefreshItemsList();
     }
 
@@ -169,9 +234,9 @@ public partial class LessonEditDialog : Window
     private void LoadResources()
     {
         var resources = _db.GetResources(_subject.Id);
-        ResourceListBox.ItemsSource    = resources;
-        NoResourcesLabel.Visibility    = resources.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ResourceListBox.Visibility     = resources.Count > 0  ? Visibility.Visible : Visibility.Collapsed;
+        ResourceListBox.ItemsSource = resources;
+        NoResourcesLabel.Visibility = resources.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ResourceListBox.Visibility  = resources.Count > 0  ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OpenResource_Click(object sender, RoutedEventArgs e)
@@ -193,18 +258,25 @@ public partial class LessonEditDialog : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        // If the user typed a title but didn't click "+ Add Lesson", add it for them
+        // If the user typed a title but did not click "+ Add Lesson", add it automatically
         var pendingTitle = NewLessonTitle.Text.Trim();
         if (!string.IsNullOrEmpty(pendingTitle))
         {
-            _items.Add(new LessonItem
+            if (_editingItemIdx >= 0)
             {
-                Title     = pendingTitle,
-                SubTitle  = NewLessonSubTitle.Text.Trim(),
-                SortOrder = _items.Count
-            });
-            NewLessonTitle.Clear();
-            NewLessonSubTitle.Clear();
+                _items[_editingItemIdx].Title    = pendingTitle;
+                _items[_editingItemIdx].SubTitle = NewLessonSubTitle.Text.Trim();
+            }
+            else
+            {
+                _items.Add(new LessonItem
+                {
+                    Title     = pendingTitle,
+                    SubTitle  = NewLessonSubTitle.Text.Trim(),
+                    SortOrder = _items.Count
+                });
+            }
+            ResetEditForm();
         }
 
         var notes = NotesBox.Text.Trim();
@@ -232,6 +304,43 @@ public partial class LessonEditDialog : Window
         _entry.Items      = _items;
 
         _db.SaveEntry(_entry);
+
+        // Optionally copy this lesson to all other students with a matching subject name
+        if (AddToAllCheck.IsChecked == true)
+        {
+            var dateStr = _date.ToString("yyyy-MM-dd");
+            foreach (var student in _db.GetStudents())
+            {
+                if (student.Id == _student.Id) continue;
+
+                // Find a subject with the same name on the other student
+                var match = _db.GetSubjects(student.Id, activeOnly: false)
+                    .FirstOrDefault(s => string.Equals(s.Name, _subject.Name, StringComparison.OrdinalIgnoreCase));
+                if (match == null) continue;
+
+                // Load or create the entry for that student/subject/date
+                var otherEntry = _db.GetEntry(match.Id, student.Id, dateStr) ?? new LessonEntry
+                {
+                    SubjectId  = match.Id,
+                    StudentId  = student.Id,
+                    LessonDate = dateStr
+                };
+
+                otherEntry.Notes      = notes;
+                otherEntry.IsComplete = done;
+                // Copy lesson items (without IDs so they get inserted fresh)
+                otherEntry.Items = _items.Select(i => new LessonItem
+                {
+                    Title     = i.Title,
+                    SubTitle  = i.SubTitle,
+                    SortOrder = i.SortOrder,
+                    IsComplete = i.IsComplete
+                }).ToList();
+
+                _db.SaveEntry(otherEntry);
+            }
+        }
+
         DialogResult = true;
     }
 

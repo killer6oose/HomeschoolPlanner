@@ -35,14 +35,19 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="110" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
                         <TextBlock Text="Name" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
                         <TextBox x:Name="NameBox" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1">
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
                         <TextBlock Text="Grade" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
                         <ComboBox x:Name="GradeCombo" SelectionChanged="GradeCombo_SelectionChanged" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="School Year" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4" />
+                        <TextBox x:Name="SchoolYearBox" />
                     </StackPanel>
                 </Grid>
                 <StackPanel Margin="0,0,0,8">
@@ -63,9 +68,11 @@
                     <Button x:Name="DeleteBtn" Content="Delete" Visibility="Collapsed"
                             Style="{DynamicResource NavButtonStyle}" Foreground="#CC2222"
                             Margin="0,0,8,0" Click="Delete_Click" />
-                    <Button Content="Clear" Style="{DynamicResource NavButtonStyle}"
+                    <Button Content="Clear"
+                            Style="{DynamicResource NavButtonStyle}"
                             Margin="0,0,8,0" Click="Clear_Click" />
-                    <Button Content="Save" Style="{DynamicResource PrimaryButtonStyle}"
+                    <Button Content="Save"
+                            Style="{DynamicResource PrimaryButtonStyle}"
                             Click="Save_Click" />
                 </StackPanel>
             </StackPanel>
