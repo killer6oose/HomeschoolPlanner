@@ -36,11 +36,12 @@ public partial class PreferencesDialog : Window
         var s = AppState.Settings;
         switch (s.Theme)
         {
-            case "Dark":   RadioDark.IsChecked   = true; break;
-            case "Pride":  RadioPride.IsChecked  = true; break;
-            case "Cherry": RadioCherry.IsChecked = true; break;
-            case "Custom": RadioCustom.IsChecked = true; break;
-            default:       RadioLight.IsChecked  = true; break;
+            case "Dark":       RadioDark.IsChecked      = true; break;
+            case "Pride":      RadioPride.IsChecked     = true; break;
+            case "Pride Dark": RadioPrideDark.IsChecked = true; break;
+            case "Cherry":     RadioCherry.IsChecked    = true; break;
+            case "Custom":     RadioCustom.IsChecked    = true; break;
+            default:           RadioLight.IsChecked     = true; break;
         }
         switch (s.FontSize)
         {
@@ -99,10 +100,11 @@ public partial class PreferencesDialog : Window
 
         s.Theme = true switch
         {
-            _ when RadioDark.IsChecked   == true => "Dark",
-            _ when RadioPride.IsChecked  == true => "Pride",
-            _ when RadioCherry.IsChecked == true => "Cherry",
-            _ when RadioCustom.IsChecked == true => "Custom",
+            _ when RadioDark.IsChecked      == true => "Dark",
+            _ when RadioPride.IsChecked     == true => "Pride",
+            _ when RadioPrideDark.IsChecked == true => "Pride Dark",
+            _ when RadioCherry.IsChecked    == true => "Cherry",
+            _ when RadioCustom.IsChecked    == true => "Custom",
             _                                     => "Light"
         };
 

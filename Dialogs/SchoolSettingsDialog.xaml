@@ -85,7 +85,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
@@ -109,10 +109,10 @@
                         </CheckBox>
                     </Border>
 
-                    <!-- Class list -->
-                    <ListBox x:Name="ClassListBox" Grid.Row="2"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             SelectionChanged="ClassListBox_SelectionChanged" />
+                    <!-- Subject selector dropdown -->
+                    <ComboBox x:Name="ClassListBox" Grid.Row="2"
+                              Margin="0,0,0,12"
+                              SelectionChanged="ClassListBox_SelectionChanged" />
 
                     <!-- Edit panel below list -->
                     <Border Grid.Row="3"

@@ -73,7 +73,10 @@
                             Margin="0,0,8,0" Click="Clear_Click" />
                     <Button Content="Save"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Click="Save_Click" />
+                            Margin="0,0,8,0" Click="Save_Click" />
+                    <Button Content="Close"
+                            Style="{DynamicResource NavButtonStyle}"
+                            Click="Close_Click" />
                 </StackPanel>
             </StackPanel>
         </Border>

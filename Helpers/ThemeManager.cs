@@ -9,8 +9,8 @@ public static class ThemeManager
 {
     private static string _currentTheme = "Light";
 
-    /// <summary>True while the Pride theme is active - checked by code-built views.</summary>
-    public static bool IsPride  => _currentTheme == "Pride";
+    /// <summary>True while any Pride variant is active - drives rainbow gradient effects in code-built views.</summary>
+    public static bool IsPride  => _currentTheme == "Pride" || _currentTheme == "Pride Dark";
 
     /// <summary>True while the Cherry theme is active - used to apply image background.</summary>
     public static bool IsCherry => _currentTheme == "Cherry";
@@ -67,7 +67,7 @@ public static class ThemeManager
 
         // Pride-specific: show/hide animated gradient overlay on primary buttons,
         // and supply a rainbow border brush for secondary (nav) buttons.
-        bool isPride = settings.Theme == "Pride";
+        bool isPride = settings.Theme == "Pride" || settings.Theme == "Pride Dark";
         res["PrideGradientVisibility"] = isPride ? Visibility.Visible : Visibility.Collapsed;
         res["NavButtonBorderBrush"]    = isPride ? (Brush)BuildRainbowGradient() : new SolidColorBrush(border);
 
@@ -85,6 +85,24 @@ public static class ThemeManager
         res[SystemColors.GrayTextBrushKey]       = new SolidColorBrush(textSecondary);
         res[SystemColors.InactiveSelectionHighlightBrushKey]     = new SolidColorBrush(hover);
         res[SystemColors.InactiveSelectionHighlightTextBrushKey] = new SolidColorBrush(textPrimary);
+
+        // Calendar popup uses ActiveCaption for today's highlight and InactiveCaption for hover
+        res[SystemColors.ActiveCaptionBrushKey]      = new SolidColorBrush(accent);
+        res[SystemColors.ActiveCaptionTextBrushKey]  = new SolidColorBrush(Colors.White);
+        res[SystemColors.InactiveCaptionBrushKey]    = new SolidColorBrush(hover);
+        res[SystemColors.InactiveCaptionTextBrushKey]= new SolidColorBrush(textPrimary);
+
+        // Danger Zone card - tinted surface + border that stays readable in every theme
+        var (dangerSurface, dangerBorder) = settings.Theme switch
+        {
+            "Dark"       => (Color.FromRgb(0x2D, 0x15, 0x15), Color.FromRgb(0x8B, 0x33, 0x33)),
+            "Cherry"     => (Color.FromRgb(0xFF, 0xE8, 0xEE), Color.FromRgb(0xE8, 0x8A, 0xAA)),
+            "Pride"      => (Color.FromRgb(0xFD, 0xF0, 0xFF), Color.FromRgb(0xCC, 0x88, 0xEE)),
+            "Pride Dark" => (Color.FromRgb(0x2A, 0x15, 0x28), Color.FromRgb(0x88, 0x33, 0x77)),
+            _            => (Color.FromRgb(0xFF, 0xF5, 0xF5), Color.FromRgb(0xFF, 0xCC, 0xCC))
+        };
+        res["DangerSurfaceBrush"] = new SolidColorBrush(dangerSurface);
+        res["DangerBorderBrush"]  = new SolidColorBrush(dangerBorder);
 
         // Font resources
         res["AppFontFamily"] = new FontFamily(settings.FontFamily);
@@ -134,8 +152,8 @@ public static class ThemeManager
                 textSecondary: Parse("#9C4A6E")                     // muted rose
             ),
             "Dark" => (
-                bg:            Parse("#1A1F2E"),
-                surface:       Parse("#252D3D"),
+                bg:            Parse("#22283A"),   // slightly lighter than original #1A1F2E
+                surface:       Parse("#2A3245"),
                 accent:        Parse("#5B9AD5"),
                 accentHover:   Parse("#4B8AC5"),
                 border:        Parse("#3A4252"),
@@ -144,13 +162,23 @@ public static class ThemeManager
             ),
             // Muted off-white background; rainbow comes from button overlays and borders
             "Pride" => (
-                bg:            Parse("#F8F7FF"),   // slight violet tint, not black
+                bg:            Parse("#F8F7FF"),   // slight violet tint
                 surface:       Colors.White,
-                accent:        Parse("#7B2FBE"),   // vibrant purple for text highlights/dots
+                accent:        Parse("#7B2FBE"),   // vibrant purple
                 accentHover:   Parse("#6A28A0"),
                 border:        Parse("#E0D8F0"),   // soft purple-gray
                 textPrimary:   Parse("#1A0033"),   // deep purple-black
                 textSecondary: Parse("#7260A0")    // muted purple
+            ),
+            // Pride palette on a dark background - not as dark as "Dark" theme
+            "Pride Dark" => (
+                bg:            Parse("#1E1A2E"),   // deep purple-black
+                surface:       Parse("#2A2442"),   // dark purple surface
+                accent:        Parse("#A06AE8"),   // brighter purple to pop on dark bg
+                accentHover:   Parse("#9058D8"),
+                border:        Parse("#3D3560"),   // dark purple border
+                textPrimary:   Parse("#E8E0F5"),   // light lavender
+                textSecondary: Parse("#9080C0")    // muted purple
             ),
             "Custom" => (
                 bg:            Parse(s.CustomSecondaryColor),

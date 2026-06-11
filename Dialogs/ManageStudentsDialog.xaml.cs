@@ -136,6 +136,8 @@ public partial class ManageStudentsDialog : Window
         }
     }
 
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
     private void Clear_Click(object sender, RoutedEventArgs e)
     {
         _editingStudent    = null;

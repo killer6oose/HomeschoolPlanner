@@ -66,8 +66,24 @@ public partial class WeekView : UserControl
         var textSecondary = ThemeColors.TextSecondaryBrush;
         var accentBrush   = ThemeColors.AccentBrush;
         var accentColor   = ThemeColors.Accent;
-        var todayHeaderBg = new SolidColorBrush(Color.FromArgb(30, accentColor.R, accentColor.G, accentColor.B));
-        var todayColBg    = new SolidColorBrush(Color.FromArgb(15, accentColor.R, accentColor.G, accentColor.B));
+        // Cherry theme uses a stronger tint so the today column is distinct but the image still shows through.
+        // Non-today columns use the surface RGB at ~55% opacity so the cherry image shows at roughly
+        // half the visibility level of the today column (today is ~18% opaque -> cherry at 82%;
+        // other days at ~55% opaque -> cherry at 45%, which is about half).
+        var surfaceColor = ThemeColors.Surface;
+        var todayHeaderBg = ThemeManager.IsCherry
+            ? new SolidColorBrush(Color.FromArgb(70,  accentColor.R, accentColor.G, accentColor.B))
+            : new SolidColorBrush(Color.FromArgb(30,  accentColor.R, accentColor.G, accentColor.B));
+        var todayColBg = ThemeManager.IsCherry
+            ? new SolidColorBrush(Color.FromArgb(45,  accentColor.R, accentColor.G, accentColor.B))
+            : new SolidColorBrush(Color.FromArgb(15,  accentColor.R, accentColor.G, accentColor.B));
+        // Default (non-today) cell background - semi-transparent in Cherry so the image shows through
+        var colDefaultBg    = ThemeManager.IsCherry
+            ? new SolidColorBrush(Color.FromArgb(140, surfaceColor.R, surfaceColor.G, surfaceColor.B))
+            : surfaceBrush;
+        var headerDefaultBg = ThemeManager.IsCherry
+            ? new SolidColorBrush(Color.FromArgb(155, surfaceColor.R, surfaceColor.G, surfaceColor.B))
+            : surfaceBrush;
 
         var allSubjects = _students.ToDictionary(s => s.Id, s => _db.GetSubjects(s.Id));
         var startStr    = _weekStart.ToString("yyyy-MM-dd");
@@ -86,17 +102,20 @@ public partial class WeekView : UserControl
         {
             var dayDate = _weekStart.AddDays(DayOffset(dayNum));
             var isToday = dayDate.Date == DateTime.Today;
-            bool prideToday = isToday && ThemeManager.IsPride;
+            bool prideToday  = isToday && ThemeManager.IsPride;
+            bool cherryToday = isToday && ThemeManager.IsCherry;
 
             for (int si = 0; si < _students.Count; si++)
                 HeaderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var headerBorder = new Border
             {
-                Background      = isToday ? todayHeaderBg : surfaceBrush,
-                // Pride + today: 2px rainbow border all around. Otherwise: normal right+bottom separator.
-                BorderBrush     = prideToday ? ThemeManager.BuildRainbowGradient() : borderBrush,
-                BorderThickness = prideToday ? new Thickness(2) : new Thickness(0, 0, 1, 1),
+                Background      = isToday ? todayHeaderBg : headerDefaultBg,
+                // Pride: 2px rainbow border. Cherry: 2px accent border. Otherwise: normal right+bottom separator.
+                BorderBrush     = prideToday  ? ThemeManager.BuildRainbowGradient()
+                                : cherryToday ? accentBrush
+                                :               borderBrush,
+                BorderThickness = (prideToday || cherryToday) ? new Thickness(2) : new Thickness(0, 0, 1, 1),
                 Padding         = new Thickness(10, 8, 10, 8)
             };
             var hContent = new StackPanel();
@@ -130,7 +149,8 @@ public partial class WeekView : UserControl
         foreach (var dayNum in schoolDays)
         {
             var dayDate = _weekStart.AddDays(DayOffset(dayNum));
-            var isToday = dayDate.Date == DateTime.Today;
+            var isToday      = dayDate.Date == DateTime.Today;
+            bool cherryTodayCol = isToday && ThemeManager.IsCherry;
             var dateStr = dayDate.ToString("yyyy-MM-dd");
 
             for (int si = 0; si < _students.Count; si++)
@@ -144,9 +164,10 @@ public partial class WeekView : UserControl
 
                 var colBorder = new Border
                 {
-                    Background      = isToday ? todayColBg : surfaceBrush,
-                    BorderBrush     = borderBrush,
-                    BorderThickness = new Thickness(0, 0, 1, 0)
+                    Background      = isToday ? todayColBg : colDefaultBg,
+                    // Cherry today: 2px accent border on left/right/bottom to complete the header's outline
+                    BorderBrush     = cherryTodayCol ? accentBrush : borderBrush,
+                    BorderThickness = cherryTodayCol  ? new Thickness(2, 0, 2, 2) : new Thickness(0, 0, 1, 0)
                 };
                 var colStack = new StackPanel { Margin = new Thickness(6, 6, 6, 6) };
 

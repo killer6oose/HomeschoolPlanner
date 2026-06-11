@@ -17,6 +17,9 @@
         <!-- Hover/press brushes for buttons - computed per-theme by ThemeManager -->
         <SolidColorBrush x:Key="HoverBrush"          Color="#EEF2F8" />
         <SolidColorBrush x:Key="PressedBrush"        Color="#DDE4EF" />
+        <!-- Danger Zone card colors - updated per-theme by ThemeManager -->
+        <SolidColorBrush x:Key="DangerSurfaceBrush"  Color="#FFF5F5" />
+        <SolidColorBrush x:Key="DangerBorderBrush"   Color="#FFCCCC" />
         <!-- Pride-specific resources - overwritten by ThemeManager.Apply() -->
         <SolidColorBrush x:Key="NavButtonBorderBrush" Color="#D8DCE6" />
         <Visibility x:Key="PrideGradientVisibility">Collapsed</Visibility>
@@ -43,23 +46,302 @@
             <Setter Property="CaretBrush"   Value="{DynamicResource TextPrimaryBrush}" />
         </Style>
 
-        <!-- ComboBox -->
+        <!-- ComboBox - modern flat style with rounded border, chevron arrow, accent focus ring -->
         <Style TargetType="ComboBox">
-            <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
-            <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
-            <Setter Property="Padding"     Value="8,5" />
-            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
-            <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="FontFamily"               Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"                 Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"               Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness"          Value="1" />
+            <Setter Property="Height"                   Value="34" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor"                   Value="Hand" />
+            <Setter Property="MaxDropDownHeight"        Value="220" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <!-- Toggle button provides the border/background and handles open/close clicks -->
+                            <ToggleButton x:Name="ToggleBtn"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False"
+                                          ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd"
+                                                Background="{DynamicResource SurfaceBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6">
+                                            <!-- Chevron arrow, right-aligned -->
+                                            <Path x:Name="Arrow"
+                                                  Data="M 0 0 L 4 4 L 8 0"
+                                                  Stroke="{DynamicResource TextSecondaryBrush}"
+                                                  StrokeThickness="1.5"
+                                                  StrokeLineJoin="Round"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  Fill="Transparent"
+                                                  Width="8" Height="4"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,10,0"
+                                                  RenderTransformOrigin="0.5,0.5">
+                                                <Path.RenderTransform>
+                                                    <RotateTransform x:Name="ArrowRotate" Angle="0" />
+                                                </Path.RenderTransform>
+                                            </Path>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </Trigger>
+                                            <!-- Flip the chevron when open -->
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                <Trigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate"
+                                                                             Storyboard.TargetProperty="Angle"
+                                                                             To="180" Duration="0:0:0.15" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </Trigger.EnterActions>
+                                                <Trigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate"
+                                                                             Storyboard.TargetProperty="Angle"
+                                                                             To="0" Duration="0:0:0.15" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </Trigger.ExitActions>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <!-- Selected item display - floats on top, passes clicks through to ToggleButton -->
+                            <ContentPresenter x:Name="ContentSite"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="10,0,32,0"
+                                              VerticalAlignment="Center"
+                                              IsHitTestVisible="False" />
+
+                            <!-- Dropdown popup -->
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Margin="0,3,0,0"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" Opacity="0.1" BlurRadius="14" ShadowDepth="4" Direction="270" />
+                                    </Border.Effect>
+                                    <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  Padding="4,4">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ContentSite" Property="Opacity" Value="0.45" />
+                                <Setter TargetName="ToggleBtn"   Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <!-- ComboBoxItem - so dropdown items use theme colors -->
+        <!-- ComboBoxItem - rounded hover/selected states -->
         <Style TargetType="ComboBoxItem">
             <Setter Property="FontFamily"  Value="{DynamicResource AppFontFamily}" />
             <Setter Property="FontSize"    Value="{DynamicResource AppFontSize}" />
-            <Setter Property="Background"  Value="{DynamicResource SurfaceBrush}" />
             <Setter Property="Foreground"  Value="{DynamicResource TextPrimaryBrush}" />
-            <Setter Property="Padding"     Value="6,4" />
+            <Setter Property="Background"  Value="Transparent" />
+            <Setter Property="Padding"     Value="10,7" />
+            <Setter Property="Cursor"      Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <!-- OuterBd handles shape/clipping; layers inside handle the background -->
+                        <Border x:Name="OuterBd"
+                                CornerRadius="4"
+                                Margin="3,1"
+                                ClipToBounds="True">
+                            <Grid>
+                                <!-- Solid accent bg (non-Pride selected state) -->
+                                <Border x:Name="AccentBd" Background="Transparent" />
+                                <!-- Pride rainbow overlay - Collapsed in non-Pride themes via DynamicResource.
+                                     Opacity=0 so it's invisible until an item is selected. -->
+                                <Border x:Name="GradientBd"
+                                        Opacity="0"
+                                        Visibility="{DynamicResource PrideGradientVisibility}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                            <GradientStop Color="#E05050" Offset="0.000" />
+                                            <GradientStop Color="#D4832A" Offset="0.167" />
+                                            <GradientStop Color="#A8A828" Offset="0.333" />
+                                            <GradientStop Color="#28A060" Offset="0.500" />
+                                            <GradientStop Color="#2864D0" Offset="0.667" />
+                                            <GradientStop Color="#8C28C8" Offset="0.833" />
+                                            <GradientStop Color="#E05050" Offset="1.000" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <ContentPresenter Margin="{TemplateBinding Padding}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="AccentBd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                <!-- In Pride theme, show a dim rainbow tint on hover (GradientBd is Collapsed in other themes) -->
+                                <Setter TargetName="GradientBd" Property="Opacity" Value="0.25" />
+                            </Trigger>
+                            <!-- Selected: solid accent at 70% (non-Pride), rainbow at 75% (Pride) -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="AccentBd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="AccentBd" Property="Opacity" Value="0.7" />
+                                <Setter TargetName="GradientBd" Property="Opacity" Value="0.75" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <!-- Selected + hover: nudge both layers slightly brighter -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected"  Value="True" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="AccentBd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="AccentBd" Property="Opacity" Value="0.85" />
+                                <Setter TargetName="GradientBd" Property="Opacity" Value="0.9" />
+                                <Setter Property="Foreground" Value="White" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TabControl - background and border from theme -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background"   Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush"  Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding"      Value="4" />
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+        </Style>
+
+        <!-- TabItem - themed header text, selected vs unselected states -->
+        <Style TargetType="TabItem">
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="Background"   Value="Transparent" />
+            <Setter Property="BorderBrush"  Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Padding"      Value="12,6" />
+            <Setter Property="Cursor"       Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                CornerRadius="4,4,0,0"
+                                Padding="{TemplateBinding Padding}"
+                                Margin="0,0,2,0"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter x:Name="TabContent"
+                                              ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextBlock.Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBd"      Property="Background"   Value="{DynamicResource HoverBrush}" />
+                                <Setter TargetName="TabContent" Property="TextBlock.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TabBd"      Property="Background"   Value="{DynamicResource SurfaceBrush}" />
+                                <Setter TargetName="TabBd"      Property="BorderBrush"  Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="TabContent" Property="TextBlock.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- DatePicker - field colors from theme -->
+        <Style TargetType="DatePicker">
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"   Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush"  Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding"      Value="4,3" />
+            <Setter Property="IsTodayHighlighted" Value="True" />
+        </Style>
+
+        <!-- DatePickerTextBox - the editable text part inside DatePicker -->
+        <Style TargetType="DatePickerTextBox">
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"   Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding"      Value="2,0" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="CaretBrush"   Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <!-- Calendar popup - background and borders from theme -->
+        <Style TargetType="Calendar">
+            <Setter Property="Background"   Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush"  Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+        </Style>
+
+        <!-- CalendarDayButton - individual day cells in the calendar popup -->
+        <Style TargetType="CalendarDayButton">
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"   Value="Transparent" />
+            <Setter Property="MinWidth"     Value="34" />
+            <Setter Property="MinHeight"    Value="28" />
+        </Style>
+
+        <!-- CalendarButton - month/year navigation cells -->
+        <Style TargetType="CalendarButton">
+            <Setter Property="FontFamily"   Value="{DynamicResource AppFontFamily}" />
+            <Setter Property="FontSize"     Value="{DynamicResource AppFontSize}" />
+            <Setter Property="Foreground"   Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"   Value="Transparent" />
+            <Setter Property="MinWidth"     Value="40" />
+            <Setter Property="MinHeight"    Value="42" />
         </Style>
 
         <!-- CheckBox -->
