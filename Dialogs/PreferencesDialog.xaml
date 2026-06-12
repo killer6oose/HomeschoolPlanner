@@ -115,6 +115,21 @@
 
                 <Separator Margin="0,4,0,16" />
 
+                <!-- WEEK VIEW -->
+                <TextBlock Text="Week View" FontSize="15" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,10" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4" VerticalAlignment="Center">
+                    <TextBlock Text="First day of week:" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,10,0" />
+                    <ComboBox x:Name="WeekStartCombo" Width="160" />
+                </StackPanel>
+                <TextBlock x:Name="WeekStartHint"
+                           FontSize="12" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,4,0,16" />
+
+                <Separator Margin="0,4,0,16" />
+
                 <!-- BEHAVIOR -->
                 <TextBlock Text="Behavior" FontSize="15" FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,10" />

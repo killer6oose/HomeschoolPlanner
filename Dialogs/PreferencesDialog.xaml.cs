@@ -27,6 +27,14 @@ public partial class PreferencesDialog : Window
         FontCombo.SelectedItem  = AppState.Settings.FontFamily;
         if (FontCombo.SelectedIndex < 0) FontCombo.SelectedIndex = 0;
 
+        // Populate week start options
+        WeekStartCombo.ItemsSource = new[] { "Monday", "Sunday", "Saturday", "Current Day" };
+        WeekStartCombo.SelectedItem = AppState.Settings.WeekStartDay == "CurrentDay"
+            ? "Current Day" : AppState.Settings.WeekStartDay;
+        if (WeekStartCombo.SelectedIndex < 0) WeekStartCombo.SelectedIndex = 0;
+        WeekStartCombo.SelectionChanged += WeekStart_Changed;
+        UpdateWeekStartHint();
+
         // Wire swatch pickers for custom colors
         CustomPrimarySwatches.Children.Add(ColorPickerHelper.BuildSwatchPanel(CustomPrimaryBox, CustomPrimaryPreview));
         CustomBgSwatches.Children.Add(ColorPickerHelper.BuildSwatchPanel(CustomBgBox, CustomBgPreview));
@@ -54,6 +62,20 @@ public partial class PreferencesDialog : Window
         CustomFontBox.Text    = s.CustomFontColor;
 
         ShowGradeTemplateCheck.IsChecked = s.ShowGradeTemplatePrompt;
+    }
+
+    private void WeekStart_Changed(object sender, SelectionChangedEventArgs e) => UpdateWeekStartHint();
+
+    private void UpdateWeekStartHint()
+    {
+        if (WeekStartHint == null) return;
+        WeekStartHint.Text = WeekStartCombo.SelectedItem as string switch
+        {
+            "Current Day" => "The week view always starts from today, scrolling back and forward in 7-day windows.",
+            "Sunday"      => "Week columns run Sunday - Saturday.",
+            "Saturday"    => "Week columns run Saturday - Friday.",
+            _             => "Week columns run Monday - Sunday."
+        };
     }
 
     private void Theme_Changed(object sender, RoutedEventArgs e)
@@ -120,6 +142,13 @@ public partial class PreferencesDialog : Window
         s.CustomSecondaryColor     = NormalizeHex(CustomBgBox.Text);
         s.CustomFontColor          = NormalizeHex(CustomFontBox.Text);
         s.ShowGradeTemplatePrompt  = ShowGradeTemplateCheck.IsChecked == true;
+        s.WeekStartDay = WeekStartCombo.SelectedItem as string switch
+        {
+            "Current Day" => "CurrentDay",
+            "Sunday"      => "Sunday",
+            "Saturday"    => "Saturday",
+            _             => "Monday"
+        };
 
         _db.SaveSettings(s);
         ThemeManager.Apply(s);
