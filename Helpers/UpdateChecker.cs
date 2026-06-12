@@ -9,7 +9,8 @@ namespace HomeschoolPlanner.Helpers;
 public static class UpdateChecker
 {
     private const string VersionUrl   = "https://hsrc.thehattons.co/releases/version.txt";
-    private const string InstallerUrl = "https://hsrc.thehattons.co/releases/HomeschoolPlannerSetup.exe";
+    private const string InstallerUrl = "https://hsrc.thehattons.co/releases/HomeschoolPlannerSetup.exe";
+    private const string ChangelogUrl  = "https://hsrc.thehattons.co/releases/changelog-latest.txt";
 
     public static string CurrentVersion =>
         Assembly.GetExecutingAssembly()
@@ -18,6 +19,19 @@ public static class UpdateChecker
                 ?.Split('+')[0]   // strip git commit hash if present
                 .Trim()
         ?? "1.0.0";
+
+    /// <summary>
+    /// Fetches the latest changelog markdown from the server. Returns null on network failure.
+    /// </summary>
+    public static async Task<string?> FetchChangelogAsync()
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            return (await http.GetStringAsync(ChangelogUrl)).Trim();
+        }
+        catch { return null; }
+    }
 
     /// <summary>
     /// Checks for a newer version silently. Prompts the user only if one is found.

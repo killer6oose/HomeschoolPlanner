@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using HomeschoolPlanner.Data;
+using HomeschoolPlanner.Helpers;
 using HomeschoolPlanner.Models;
 
 namespace HomeschoolPlanner.Views;
@@ -79,6 +80,14 @@ public partial class MonthView : UserControl
 
         CalendarGrid.Rows = rows;
 
+        // Compute theme brushes once for this render pass
+        var accentColor = ThemeColors.Accent;
+        var todayBg   = new SolidColorBrush(Color.FromArgb(40, accentColor.R, accentColor.G, accentColor.B));
+        var surfaceBg = ThemeColors.SurfaceBrush;
+        var borderBr  = ThemeColors.BorderBrush;
+        var hoverBg   = Application.Current.Resources["HoverBrush"] as SolidColorBrush
+                        ?? new SolidColorBrush(Colors.LightGray);
+
         // Fill blank cells before month start
         for (int i = 0; i < startOffset; i++)
             CalendarGrid.Children.Add(new Border { Background = Brushes.Transparent });
@@ -93,10 +102,11 @@ public partial class MonthView : UserControl
 
             dayDots.TryGetValue(dateStr, out var dots);
 
+            var cellBg = isToday ? todayBg : surfaceBg;
             var cell = new Border
             {
-                Background      = isToday ? new SolidColorBrush(Color.FromRgb(0xEE, 0xF4, 0xFF)) : Brushes.White,
-                BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
+                Background      = cellBg,
+                BorderBrush     = borderBr,
                 BorderThickness = new Thickness(0, 0, 1, 1),
                 Padding         = new Thickness(6, 4, 6, 4),
                 Cursor          = Cursors.Hand
@@ -111,10 +121,10 @@ public partial class MonthView : UserControl
                 FontSize   = 13,
                 FontWeight = isToday ? FontWeights.Bold : FontWeights.Normal,
                 Foreground = isToday
-                    ? new SolidColorBrush(Color.FromRgb(0x4A, 0x7C, 0xB5))
+                    ? ThemeColors.AccentBrush
                     : isWeekend
-                        ? new SolidColorBrush(Color.FromRgb(0xAA, 0xB0, 0xBB))
-                        : new SolidColorBrush(Color.FromRgb(0x1C, 0x23, 0x33)),
+                        ? ThemeColors.TextSecondaryBrush
+                        : ThemeColors.TextPrimaryBrush,
                 Margin = new Thickness(0, 0, 0, 4)
             };
             cellContent.Children.Add(dayLabel);
@@ -140,10 +150,10 @@ public partial class MonthView : UserControl
             cell.Child = cellContent;
 
             var capturedDate = date;
+            var cap_bg = cellBg;
             cell.MouseLeftButtonUp += (s, e) => DayClicked?.Invoke(capturedDate);
-            cell.MouseEnter += (s, e) => ((Border)s).Background = new SolidColorBrush(Color.FromRgb(0xF0, 0xF4, 0xFB));
-            cell.MouseLeave += (s, e) => ((Border)s).Background =
-                isToday ? new SolidColorBrush(Color.FromRgb(0xEE, 0xF4, 0xFF)) : Brushes.White;
+            cell.MouseEnter += (s, e) => ((Border)s).Background = hoverBg;
+            cell.MouseLeave += (s, e) => ((Border)s).Background = cap_bg;
 
             CalendarGrid.Children.Add(cell);
         }
@@ -153,8 +163,8 @@ public partial class MonthView : UserControl
         for (int i = 0; i < remaining; i++)
             CalendarGrid.Children.Add(new Border
             {
-                Background      = new SolidColorBrush(Color.FromRgb(0xF9, 0xFA, 0xFB)),
-                BorderBrush     = new SolidColorBrush(Color.FromRgb(0xD8, 0xDC, 0xE6)),
+                Background      = ThemeColors.BackgroundBrush,
+                BorderBrush     = borderBr,
                 BorderThickness = new Thickness(0, 0, 1, 1)
             });
     }

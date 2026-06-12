@@ -14,6 +14,7 @@ public partial class WeekView : UserControl
     private readonly DatabaseService _db;
     private List<Student> _students;
     private DateTime _weekStart;
+    private int _weekStartIso = 1; // ISO: Mon=1..Sun=7
 
     // Tracks which subject blocks are expanded: "{subjectId}:{dateStr}"
     private readonly HashSet<string> _expandedBlocks = new();
@@ -24,7 +25,7 @@ public partial class WeekView : UserControl
         {4,"Thursday"},{5,"Friday"},{6,"Saturday"},{7,"Sunday"}
     };
 
-    private static int DayOffset(int isoDay) => (isoDay - 1 + 7) % 7;
+    private int DayOffset(int isoDay) => (isoDay - _weekStartIso + 7) % 7;
 
     public WeekView(DatabaseService db, Student student) : this(db, new List<Student> { student }) { }
 
@@ -43,7 +44,8 @@ public partial class WeekView : UserControl
 
     public void LoadWeek(DateTime date)
     {
-        _weekStart = GetMonday(date);
+        _weekStart    = GetWeekStart(date);
+        _weekStartIso = ToIso(_weekStart.DayOfWeek);
         Render();
     }
 
@@ -97,8 +99,11 @@ public partial class WeekView : UserControl
         HeaderRow.ColumnDefinitions.Clear();
         HeaderRow.Children.Clear();
 
+        // Sort school days by their offset from the week start so columns always render left-to-right
+        var orderedDays = schoolDays.OrderBy(d => DayOffset(d)).ToArray();
+
         int headerColIdx = 0;
-        foreach (var dayNum in schoolDays)
+        foreach (var dayNum in orderedDays)
         {
             var dayDate = _weekStart.AddDays(DayOffset(dayNum));
             var isToday = dayDate.Date == DateTime.Today;
@@ -132,6 +137,46 @@ public partial class WeekView : UserControl
                 FontWeight = isToday ? FontWeights.Bold : FontWeights.SemiBold,
                 Foreground = isToday ? accentBrush : textPrimary
             });
+            // Complete Day button
+            var cap_hdayDate  = dayDate;
+            var cap_hstudents = _students;
+            bool dayDoneAll = _students.All(st =>
+            {
+                var subs = allSubjects[st.Id];
+                var daySubs = subs.Where(s => s.IsScheduledOn(dayDate)).ToList();
+                if (daySubs.Count == 0) return true;
+                return daySubs.All(sub => allEntries[st.Id].TryGetValue($"{sub.Id}:{dayDate:yyyy-MM-dd}", out var eCheck) && eCheck.IsComplete);
+            });
+
+            var completeDayLbl = new TextBlock
+            {
+                Text       = dayDoneAll ? "Done ✓" : "Mark Day Done",
+                FontSize   = Math.Max(9, fsSmall - 1),
+                Foreground = dayDoneAll
+                    ? new SolidColorBrush(Color.FromRgb(0x16, 0x91, 0x46))
+                    : textSecondary,
+                FontWeight = dayDoneAll ? FontWeights.SemiBold : FontWeights.Normal,
+                Margin     = new Thickness(0, 4, 0, 0),
+                Cursor     = Cursors.Hand
+            };
+            completeDayLbl.MouseLeftButtonUp += (_, ev) =>
+            {
+                bool markDone2 = !dayDoneAll;
+                foreach (var st in cap_hstudents)
+                {
+                    var stSubs = allSubjects[st.Id].Where(s => s.IsScheduledOn(cap_hdayDate)).ToList();
+                    foreach (var sub in stSubs)
+                    {
+                        var ent = _db.EnsureEntry(sub.Id, st.Id, cap_hdayDate.ToString("yyyy-MM-dd"));
+                        _db.SetEntryCompleteWithItems(ent.Id, markDone2);
+                    }
+                }
+                Render();
+                ev.Handled = true;
+            };
+            completeDayLbl.MouseEnter += (_, _) => completeDayLbl.Opacity = 0.7;
+            completeDayLbl.MouseLeave += (_, _) => completeDayLbl.Opacity = 1.0;
+            hContent.Children.Add(completeDayLbl);
             headerBorder.Child = hContent;
             Grid.SetColumn(headerBorder, headerColIdx * _students.Count);
             Grid.SetColumnSpan(headerBorder, _students.Count);
@@ -146,7 +191,7 @@ public partial class WeekView : UserControl
         DayColumnsGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
         int colIndex = 0;
-        foreach (var dayNum in schoolDays)
+        foreach (var dayNum in orderedDays)
         {
             var dayDate = _weekStart.AddDays(DayOffset(dayNum));
             var isToday      = dayDate.Date == DateTime.Today;
@@ -215,11 +260,12 @@ public partial class WeekView : UserControl
                             else _expandedBlocks.Add(cap_key);
                             Render();
                         },
-                        // mark all complete
+                        // mark all complete (cascade: also marks all lesson items)
                         () =>
                         {
                             var e2 = cap_entry ?? _db.EnsureEntry(cap_subject.Id, cap_student.Id, cap_date.ToString("yyyy-MM-dd"));
-                            _db.SetEntryComplete(e2.Id, !e2.IsComplete);
+                            bool markDone = !(cap_entry?.IsComplete ?? false);
+                            _db.SetEntryCompleteWithItems(e2.Id, markDone);
                             Render();
                         },
                         // delete this occurrence
@@ -242,10 +288,17 @@ public partial class WeekView : UserControl
                                 Render();
                             }
                         },
-                        // mark single item complete
+                        // mark single item complete; cascade up or down on the block
                         (itemId, nowComplete) =>
                         {
                             _db.SetLessonItemComplete(itemId, nowComplete);
+                            if (cap_entry != null)
+                            {
+                                if (nowComplete && _db.AreAllItemsComplete(cap_entry.Id))
+                                    _db.SetEntryComplete(cap_entry.Id, true);
+                                else if (!nowComplete)
+                                    _db.SetEntryComplete(cap_entry.Id, false);
+                            }
                             Render();
                         },
                         // open lesson editor
@@ -458,21 +511,35 @@ public partial class WeekView : UserControl
         return block;
     }
 
-    private static TextBlock MakeIconButton(string text, Brush foreground, double fontSize, Action onClick)
+    private static FrameworkElement MakeIconButton(string text, Brush foreground, double fontSize, Action onClick)
     {
         var tb = new TextBlock
         {
-            Text      = text,
-            FontSize  = fontSize,
-            Foreground = foreground,
-            Margin    = new Thickness(3, 0, 0, 0),
-            Cursor    = Cursors.Hand,
-            Padding   = new Thickness(2, 0, 2, 0)
+            Text                = text,
+            FontSize            = fontSize,
+            Foreground          = foreground,
+            VerticalAlignment   = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
         };
-        tb.MouseLeftButtonUp += (_, e) => { onClick(); e.Handled = true; };
-        tb.MouseEnter += (_, _) => tb.Opacity = 0.7;
-        tb.MouseLeave += (_, _) => tb.Opacity = 1.0;
-        return tb;
+
+        var bg2 = ThemeColors.Background;
+        bool isDark2 = bg2.R * 0.299f + bg2.G * 0.587f + bg2.B * 0.114f < 128;
+        var hoverBg = new SolidColorBrush(isDark2
+            ? Color.FromArgb(55, 255, 255, 255)
+            : Color.FromArgb(55, 0,   0,   0));
+        var btn = new Border
+        {
+            Child        = tb,
+            Padding      = new Thickness(5, 2, 5, 2),
+            Margin       = new Thickness(1, 0, 0, 0),
+            CornerRadius = new CornerRadius(4),
+            Background   = Brushes.Transparent,
+            Cursor       = Cursors.Hand
+        };
+        btn.MouseLeftButtonUp += (_, e) => { onClick(); e.Handled = true; };
+        btn.MouseEnter += (_, _) => btn.Background = hoverBg;
+        btn.MouseLeave += (_, _) => btn.Background = Brushes.Transparent;
+        return btn;
     }
 
     private void OnAddSubject(Student student, DateTime date)
@@ -506,9 +573,19 @@ public partial class WeekView : UserControl
         return Color.FromRgb(0x4A, 0x7C, 0xB5);
     }
 
-    private static DateTime GetMonday(DateTime date)
+    private static DateTime GetWeekStart(DateTime date)
     {
-        int diff = ((int)date.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var setting = AppState.Settings.WeekStartDay;
+        if (setting == "CurrentDay") return date.Date;
+        var anchor = setting switch
+        {
+            "Sunday"   => DayOfWeek.Sunday,
+            "Saturday" => DayOfWeek.Saturday,
+            _          => DayOfWeek.Monday
+        };
+        int diff = ((int)date.DayOfWeek - (int)anchor + 7) % 7;
         return date.AddDays(-diff).Date;
     }
+
+    private static int ToIso(DayOfWeek d) => d == DayOfWeek.Sunday ? 7 : (int)d;
 }

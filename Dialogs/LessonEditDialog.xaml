@@ -89,7 +89,9 @@
                             <CheckBox x:Name="CompleteCheck"
                                       Content="Mark entire block as complete"
                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                      Margin="0,0,0,6" />
+                                      Margin="0,0,0,6"
+                                      Checked="CompleteCheck_Checked"
+                                      Unchecked="CompleteCheck_Unchecked" />
 
                             <!-- Add to all students (only shown when multiple students exist) -->
                             <CheckBox x:Name="AddToAllCheck"

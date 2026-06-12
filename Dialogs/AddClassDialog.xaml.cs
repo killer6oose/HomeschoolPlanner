@@ -224,7 +224,7 @@ public partial class AddClassDialog : Window
                 MessageBox.Show("Add at least one date.", "No dates", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            subject.ScheduleType     = "Specific";
+            subject.ScheduleType     = "SpecificDates";
             subject.ScheduleDays     = "";
             subject.ScheduleDates    = string.Join(",", _specificDates);
             subject.ScheduleMonthly  = "";

@@ -52,13 +52,13 @@
             <TextBlock Text="When does this subject appear?" FontSize="12" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8" />
             <RadioButton x:Name="RadioEveryDay"   Content="Every school day (Mon-Fri)"
-                         Margin="0,0,0,6" Checked="ScheduleType_Changed" />
+                         IsChecked="True" Margin="0,0,0,6" Checked="ScheduleType_Changed" />
             <RadioButton x:Name="RadioDaysOfWeek" Content="Specific days of the week"
                          Margin="0,0,0,6" Checked="ScheduleType_Changed" />
             <RadioButton x:Name="RadioMonthly"    Content="Monthly (first/last day of month)"
                          Margin="0,0,0,6" Checked="ScheduleType_Changed" />
             <RadioButton x:Name="RadioSpecific"   Content="Specific date(s) only"
-                         IsChecked="True" Checked="ScheduleType_Changed" />
+                         Checked="ScheduleType_Changed" />
         </StackPanel>
 
         <!-- Days of week + repeat-until -->

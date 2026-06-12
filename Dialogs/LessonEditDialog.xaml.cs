@@ -120,7 +120,16 @@ public partial class LessonEditDialog : Window
                 Padding = new Thickness(4, 2, 4, 2),
                 ToolTip = item.IsComplete ? "Mark incomplete" : "Mark complete"
             };
-            chkBtn.Click += (_, _) => { _items[idx].IsComplete = !_items[idx].IsComplete; RefreshItemsList(); };
+            chkBtn.Click += (_, _) =>
+            {
+                _items[idx].IsComplete = !_items[idx].IsComplete;
+                // // Cascade: all done -> check block; any undone -> uncheck block
+                if (_items.Count > 0 && _items.All(i => i.IsComplete))
+                    CompleteCheck.IsChecked = true;
+                else if (!_items[idx].IsComplete)
+                    CompleteCheck.IsChecked = false;
+                RefreshItemsList();
+            };
             btns.Children.Add(chkBtn);
 
             var editBtn = new Button
@@ -355,6 +364,19 @@ public partial class LessonEditDialog : Window
             _db.DeleteEntry(_entry.Id);
             DialogResult = true;
         }
+    }
+
+    // When user checks "Mark entire block as complete", also check all lesson items
+    private void CompleteCheck_Checked(object sender, RoutedEventArgs e)
+    {
+        foreach (var item in _items) item.IsComplete = true;
+        RefreshItemsList();
+    }
+
+    private void CompleteCheck_Unchecked(object sender, RoutedEventArgs e)
+    {
+        foreach (var item in _items) item.IsComplete = false;
+        RefreshItemsList();
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;

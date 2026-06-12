@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Homeschool Planner"
-        Height="780" Width="1200"
+        Height="880" Width="1200"
         MinHeight="600" MinWidth="800"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundBrush}" Icon="/installer-icon.bmp">
@@ -19,25 +19,25 @@
               BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="0,0,0,1">
 
-            <MenuItem Header="File" Foreground="{DynamicResource TextPrimaryBrush}" Click="MenuItem_Click">
-                <MenuItem Header="Preferences" Click="Preferences_Click" BorderThickness="1,1,1,1">
+            <MenuItem Header="File" Foreground="{DynamicResource TextPrimaryBrush}" Click="MenuItem_Click" Cursor="Hand">
+                <MenuItem Header="Preferences" Click="Preferences_Click" BorderThickness="1,1,1,1" Cursor="Hand">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Take a Tour" Click="TakeTour_Click" BorderThickness="1,1,1,1">
+                <MenuItem Header="Take a Tour" Click="TakeTour_Click" BorderThickness="1,1,1,1" Cursor="Hand">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Open Logs Folder" Click="OpenLogsFolder_Click" BorderThickness="1,1,1,1">
+                <MenuItem Header="Open Logs Folder" Click="OpenLogsFolder_Click" BorderThickness="1,1,1,1" Cursor="Hand">
                     <MenuItem.Icon>
                         <TextBlock Text="&#x1F4C2;" FontSize="12" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="About" Click="About_Click" BorderThickness="1,1,1,1">
+                <MenuItem Header="About" Click="About_Click" BorderThickness="1,1,1,1" Cursor="Hand">
                     <MenuItem.Icon>
                         <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
@@ -45,36 +45,62 @@
                 </MenuItem>
             </MenuItem>
 
-            <MenuItem Header="School Settings" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="SchoolSettings_Click">
-                <MenuItem.Icon>
-                    <TextBlock Text="&#xE82D;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
-                </MenuItem.Icon>
+            <MenuItem Foreground="{DynamicResource TextPrimaryBrush}" Click="SchoolSettings_Click" Padding="10,6,0,6" Cursor="Hand">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center">
+                            <Canvas Width="511" Height="511">
+                                <Path Fill="{DynamicResource TextPrimaryBrush}"
+                                      Data="{StaticResource SchoolIconGeometry}" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock Text="School Settings" VerticalAlignment="Center" />
+                    </StackPanel>
+                </MenuItem.Header>
             </MenuItem>
 
-            <MenuItem Header="Resources" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="Resources_Click">
-                <MenuItem.Icon>
-                    <TextBlock Text="&#xE736;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
-                </MenuItem.Icon>
+            <MenuItem Foreground="{DynamicResource TextPrimaryBrush}" Click="Resources_Click" Padding="0,6,0,6" Cursor="Hand">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center">
+                            <Canvas Width="48" Height="48">
+                                <Path Stroke="{DynamicResource TextPrimaryBrush}" StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Fill="Transparent"
+                                      Data="{StaticResource ResourcesIconGeometry}" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock Text="Resources" VerticalAlignment="Center" />
+                    </StackPanel>
+                </MenuItem.Header>
             </MenuItem>
 
-            <MenuItem Header="Reports" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="Reports_Click" Margin="0,0,1,0">
-                <MenuItem.Icon>
-                    <TextBlock Text="&#xE9D2;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
-                </MenuItem.Icon>
+            <MenuItem Foreground="{DynamicResource TextPrimaryBrush}" Click="Reports_Click" Padding="0,6,0,6" Cursor="Hand">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center">
+                            <Canvas Width="32" Height="32">
+                                <Path Fill="{DynamicResource TextPrimaryBrush}"
+                                      Data="{StaticResource ReportsIconGeometry}" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock Text="Reports" VerticalAlignment="Center" />
+                    </StackPanel>
+                </MenuItem.Header>
             </MenuItem>
 
-            <MenuItem Header="Help" Foreground="{DynamicResource TextPrimaryBrush}"
-                      Click="Help_Click">
-                <MenuItem.Icon>
-                    <TextBlock Text="&#xE897;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,-5,0" />
-                </MenuItem.Icon>
+            <MenuItem Foreground="{DynamicResource TextPrimaryBrush}" Click="Help_Click" Padding="0,6,0,6" Cursor="Hand">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource TextPrimaryBrush}"
+                                      Data="{StaticResource HelpIconGeometry}" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock Text="Help" VerticalAlignment="Center" />
+                    </StackPanel>
+                </MenuItem.Header>
             </MenuItem>
 
         </Menu>
@@ -137,59 +163,49 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="10,5">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
 
-                <!-- Center: Date navigation -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Button Style="{DynamicResource NavButtonStyle}" Width="35" Click="PrevPeriod_Click">
+                    <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                </Button>
 
-                    <Button Style="{DynamicResource NavButtonStyle}" Width="35" Click="PrevPeriod_Click">
-                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
-                    </Button>
+                <Button Content="Today"
+                        Style="{DynamicResource NavButtonStyle}"
+                        Margin="6,0"
+                        Click="Today_Click" />
 
-                    <Button Content="Today"
-                            Style="{DynamicResource NavButtonStyle}"
-                            Margin="6,0"
-                            Click="Today_Click" />
+                <Button Style="{DynamicResource NavButtonStyle}" Width="35" Click="NextPeriod_Click">
+                    <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
+                </Button>
 
-                    <Button Style="{DynamicResource NavButtonStyle}" Width="35" Click="NextPeriod_Click">
-                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
-                    </Button>
+                <TextBlock x:Name="PeriodLabel"
+                           VerticalAlignment="Center"
+                           FontSize="{DynamicResource AppFontSize}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="8,0"
+                           MinWidth="200"
+                           TextAlignment="Center"
+                           Width="200" />
 
-                    <TextBlock x:Name="PeriodLabel"
-                               VerticalAlignment="Center"
-                               FontSize="{DynamicResource AppFontSize}"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Margin="8,0"
-                               MinWidth="200"
-                               TextAlignment="Center"
-                               Width="200" />
-                </StackPanel>
+                <Button x:Name="DayViewBtn"
+                        Content="Day"
+                        Style="{DynamicResource NavButtonStyle}"
+                        Click="SwitchView_Click" Tag="Day"
+                        Margin="0,0,4,0" />
+                <Button x:Name="WeekViewBtn"
+                        Content="Week"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Click="SwitchView_Click" Tag="Week"
+                        Margin="0,0,4,0" />
+                <Button x:Name="MonthViewBtn"
+                        Content="Month"
+                        Style="{DynamicResource NavButtonStyle}"
+                        Click="SwitchView_Click" Tag="Month" />
 
-                <!-- Right: View toggles -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="DayViewBtn"
-                            Content="Day"
-                            Style="{DynamicResource NavButtonStyle}"
-                            Click="SwitchView_Click" Tag="Day"
-                            Margin="0,0,4,0" />
-                    <Button x:Name="WeekViewBtn"
-                            Content="Week"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Click="SwitchView_Click" Tag="Week"
-                            Margin="0,0,4,0" />
-                    <Button x:Name="MonthViewBtn"
-                            Content="Month"
-                            Style="{DynamicResource NavButtonStyle}"
-                            Click="SwitchView_Click" Tag="Month" />
-                </StackPanel>
-            </Grid>
+            </StackPanel>
         </Border>
 
         <!-- ============================================================ -->

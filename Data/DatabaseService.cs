@@ -564,7 +564,44 @@ public class DatabaseService
         cmd.ExecuteNonQuery();
     }
 
-    // Create an entry if it doesn't exist yet (for quick-complete from calendar)
+    // Mark entry AND all its lesson items complete (cascade).
+    // When marking incomplete, only the entry flag is cleared - items are left as-is.
+    public void SetEntryCompleteWithItems(int entryId, bool complete)
+    {
+        using var conn = new SqliteConnection(_connectionString);
+        conn.Open();
+        using var entryCmd = new SqliteCommand(
+            "UPDATE LessonEntries SET IsComplete = @done WHERE Id = @id", conn);
+        entryCmd.Parameters.AddWithValue("@done", complete ? 1 : 0);
+        entryCmd.Parameters.AddWithValue("@id",   entryId);
+        entryCmd.ExecuteNonQuery();
+
+        // Cascade to items in both directions
+        using var itemsCmd = new SqliteCommand(
+            "UPDATE LessonItems SET IsComplete = @done WHERE LessonEntryId = @id", conn);
+        itemsCmd.Parameters.AddWithValue("@done", complete ? 1 : 0);
+        itemsCmd.Parameters.AddWithValue("@id", entryId);
+        itemsCmd.ExecuteNonQuery();
+    }
+
+    // Returns true if the entry has at least one lesson item and all are complete.
+    public bool AreAllItemsComplete(int entryId)
+    {
+        using var conn = new SqliteConnection(_connectionString);
+        conn.Open();
+        using var totalCmd = new SqliteCommand(
+            "SELECT COUNT(*) FROM LessonItems WHERE LessonEntryId = @id", conn);
+        totalCmd.Parameters.AddWithValue("@id", entryId);
+        var total = Convert.ToInt32(totalCmd.ExecuteScalar());
+        if (total == 0) return false;
+
+        using var incompleteCmd = new SqliteCommand(
+            "SELECT COUNT(*) FROM LessonItems WHERE LessonEntryId = @id AND IsComplete = 0", conn);
+        incompleteCmd.Parameters.AddWithValue("@id", entryId);
+        return Convert.ToInt32(incompleteCmd.ExecuteScalar()) == 0;
+    }
+
+        // Create an entry if it doesn't exist yet (for quick-complete from calendar)
     public LessonEntry EnsureEntry(int subjectId, int studentId, string date)
     {
         var existing = GetEntry(subjectId, studentId, date);
@@ -657,7 +694,8 @@ public class DatabaseService
             SchoolYearEnd        = dict.GetValueOrDefault("SchoolYearEnd",       DateTime.Today.AddYears(1).AddDays(-1).ToString("yyyy-MM-dd")),
             SchoolDays               = dict.GetValueOrDefault("SchoolDays",               "1,2,3,4,5"),
             ShowGradeTemplatePrompt  = dict.GetValueOrDefault("ShowGradeTemplatePrompt",  "true") != "false",
-            HasSeenWalkthrough       = dict.GetValueOrDefault("HasSeenWalkthrough",       "false") == "true",
+            HasSeenWalkthrough            = dict.GetValueOrDefault("HasSeenWalkthrough",        "false") == "true",
+            LastShownChangelogVersion     = dict.GetValueOrDefault("LastShownChangelogVersion", ""),
         };
     }
 
@@ -687,7 +725,8 @@ public class DatabaseService
         Upsert("SchoolYearEnd",        s.SchoolYearEnd);
         Upsert("SchoolDays",               s.SchoolDays);
         Upsert("ShowGradeTemplatePrompt",  s.ShowGradeTemplatePrompt ? "true" : "false");
-        Upsert("HasSeenWalkthrough",       s.HasSeenWalkthrough ? "true" : "false");
+        Upsert("HasSeenWalkthrough",           s.HasSeenWalkthrough ? "true" : "false");
+        Upsert("LastShownChangelogVersion", s.LastShownChangelogVersion);
     }
 
     // Wipes all student/lesson data. AppSettings and GradeClasses are preserved.

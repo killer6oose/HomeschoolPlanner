@@ -42,9 +42,27 @@ public partial class MainWindow : Window
             LogService.LogEvent("App", $"Started v{ver}");
             LoadStudents();
             ShowView("Week");
+            // Show changelog if this is the first launch after an update
+            await ShowChangelogIfUpdatedAsync();
             // Fire update check after UI is up - runs in background, won't block startup
             await UpdateChecker.CheckAsync(this);
         };
+    }
+
+    // Shows the changelog popup once per version - fires on the first launch after each update
+    private async Task ShowChangelogIfUpdatedAsync()
+    {
+        var settings = AppState.Settings;
+        var current  = UpdateChecker.CurrentVersion;
+        if (settings.LastShownChangelogVersion == current) return;
+
+        var markdown = await UpdateChecker.FetchChangelogAsync();
+        if (string.IsNullOrWhiteSpace(markdown)) return;
+
+        new ChangelogDialog(current, markdown) { Owner = this }.ShowDialog();
+
+        settings.LastShownChangelogVersion = current;
+        _db.SaveSettings(settings);
     }
 
     // -------------------------------------------------------------------------
@@ -324,8 +342,8 @@ public partial class MainWindow : Window
                 break;
 
             case "Week":
-                var weekStart = GetMonday(_currentDate);
-                var weekEnd   = weekStart.AddDays(4);
+                var weekStart = GetWeekStart(_currentDate);
+                var weekEnd   = weekStart.AddDays(6);
                 if (weekStart.Month == weekEnd.Month)
                     PeriodLabel.Text = $"{weekStart:MMMM d} - {weekEnd:d, yyyy}";
                 else if (weekStart.Year == weekEnd.Year)
@@ -399,9 +417,17 @@ public partial class MainWindow : Window
         RefreshCurrentView();
     }
 
-    private static DateTime GetMonday(DateTime date)
+    private static DateTime GetWeekStart(DateTime date)
     {
-        int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        var setting = AppState.Settings?.WeekStartDay ?? "Monday";
+        if (setting == "CurrentDay") return date.Date;
+        var anchor = setting switch
+        {
+            "Sunday"   => DayOfWeek.Sunday,
+            "Saturday" => DayOfWeek.Saturday,
+            _          => DayOfWeek.Monday
+        };
+        int diff = ((int)date.DayOfWeek - (int)anchor + 7) % 7;
         return date.AddDays(-diff).Date;
     }
 

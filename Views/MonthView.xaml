@@ -13,13 +13,13 @@
 
         <!-- Day-of-week header row -->
         <UniformGrid x:Name="DowHeader" Grid.Row="0" Rows="1" Columns="7" Margin="0,0,0,4">
-            <TextBlock Text="Mon" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
-            <TextBlock Text="Tue" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
-            <TextBlock Text="Wed" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
-            <TextBlock Text="Thu" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
-            <TextBlock Text="Fri" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
-            <TextBlock Text="Sat" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
-            <TextBlock Text="Sun" HorizontalAlignment="Center" FontSize="12" Foreground="#6B7280" />
+            <TextBlock Text="Mon" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Tue" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Wed" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Thu" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Fri" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Sat" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Sun" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
         </UniformGrid>
 
         <!-- Calendar day cells - built in code-behind -->

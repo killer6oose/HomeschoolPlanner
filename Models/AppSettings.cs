@@ -21,11 +21,17 @@ public class AppSettings
     // Comma-separated ISO day numbers: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
     public string SchoolDays { get; set; } = "1,2,3,4,5";
 
+    // "Monday" | "Sunday" | "Saturday" | "CurrentDay"
+    public string WeekStartDay { get; set; } = "Monday";
+
     // If true, prompt to apply grade template when creating a student in a graded year
     public bool ShowGradeTemplatePrompt { get; set; } = true;
 
     // False until the user completes or skips the first-launch walkthrough
     public bool HasSeenWalkthrough { get; set; } = false;
+
+    // Version whose changelog was last shown - popup fires once per release
+    public string LastShownChangelogVersion { get; set; } = "";
 
     // Parsed school day numbers in order
     public int[] SchoolDayNumbers =>

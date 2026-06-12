@@ -45,15 +45,15 @@ public partial class DayView : UserControl
     {
         SubjectList.Children.Clear();
 
-        var dateStr      = _currentDate.ToString("yyyy-MM-dd");
+        var dateStr       = _currentDate.ToString("yyyy-MM-dd");
         bool multiStudent = _students.Count > 1;
 
         foreach (var student in _students)
         {
-            var subjects = _db.GetSubjects(student.Id);
+            var subjects    = _db.GetSubjects(student.Id);
             var daySubjects = subjects.Where(s => s.IsScheduledOn(_currentDate)).ToList();
-            var entries  = _db.GetEntriesForRange(student.Id, dateStr, dateStr);
-            var entryMap = entries.ToDictionary(e => e.SubjectId, e => e);
+            var entries     = _db.GetEntriesForRange(student.Id, dateStr, dateStr);
+            var entryMap    = entries.ToDictionary(e => e.SubjectId, e => e);
 
             // Student section header in multi-student mode
             if (multiStudent)
@@ -79,25 +79,88 @@ public partial class DayView : UserControl
             {
                 SubjectList.Children.Add(new TextBlock
                 {
-                    Text               = multiStudent ? $"No classes scheduled for {student.Name} today." : "No classes scheduled for today.",
-                    FontSize           = 13,
-                    Foreground         = new SolidColorBrush(ThemeColors.TextSecondary),
+                    Text                = multiStudent ? $"No classes scheduled for {student.Name} today." : "No classes scheduled for today.",
+                    FontSize            = 13,
+                    Foreground          = new SolidColorBrush(ThemeColors.TextSecondary),
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin             = new Thickness(0, 10, 0, 16),
-                    FontStyle          = FontStyles.Italic
+                    Margin              = new Thickness(0, 10, 0, 16),
+                    FontStyle           = FontStyles.Italic
                 });
             }
             else
             {
+                // "Complete This Day" banner - only shown when there are subjects to complete
+                var capturedStudent   = student;
+                var capturedDaySubjects = daySubjects;
+                var capturedEntryMap  = entryMap;
+                var capturedDate      = _currentDate;
+
+                bool allDone = daySubjects.All(s =>
+                    entryMap.TryGetValue(s.Id, out var e) && e.IsComplete);
+
+                var dayBar = new Border
+                {
+                    Background      = allDone
+                        ? new SolidColorBrush(Color.FromArgb(30, 0x22, 0xC5, 0x5E))
+                        : new SolidColorBrush(Color.FromArgb(12, ThemeColors.Accent.R, ThemeColors.Accent.G, ThemeColors.Accent.B)),
+                    BorderBrush     = allDone
+                        ? new SolidColorBrush(Color.FromArgb(80, 0x22, 0xC5, 0x5E))
+                        : ThemeColors.BorderBrush,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius    = new CornerRadius(6),
+                    Padding         = new Thickness(12, 7, 12, 7),
+                    Margin          = new Thickness(0, 0, 0, 10),
+                    Cursor          = Cursors.Hand
+                };
+                var dayBarRow = new Grid();
+                dayBarRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                dayBarRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                dayBarRow.Children.Add(new TextBlock
+                {
+                    Text              = allDone ? "Day complete!" : "Complete this day",
+                    FontSize          = 12,
+                    FontWeight        = allDone ? FontWeights.SemiBold : FontWeights.Normal,
+                    Foreground        = allDone
+                        ? new SolidColorBrush(Color.FromRgb(0x16, 0x91, 0x46))
+                        : ThemeColors.TextSecondaryBrush,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+                var completeDayBtn = new Button
+                {
+                    Content             = allDone ? "Undo" : "Mark All Done",
+                    Style               = (Style)Application.Current.Resources["NavButtonStyle"],
+                    Padding             = new Thickness(10, 4, 10, 4),
+                    FontSize            = 11,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+                Grid.SetColumn(completeDayBtn, 1);
+                dayBarRow.Children.Add(completeDayBtn);
+                dayBar.Child = dayBarRow;
+
+                completeDayBtn.Click += (_, _) =>
+                {
+                    var newState = !allDone;
+                    foreach (var sub in capturedDaySubjects)
+                    {
+                        var entry = _db.EnsureEntry(sub.Id, capturedStudent.Id, capturedDate.ToString("yyyy-MM-dd"));
+                        _db.SetEntryCompleteWithItems(entry.Id, newState);
+                    }
+                    Render();
+                };
+
+                SubjectList.Children.Add(dayBar);
+
                 foreach (var subject in daySubjects)
                 {
-                    var subjectColor    = ParseHexColor(subject.Color);
+                    var subjectColor = ParseHexColor(subject.Color);
                     entryMap.TryGetValue(subject.Id, out var entry);
-                    bool expanded       = _expandedSubjects.Contains(subject.Id);
+                    bool expanded = _expandedSubjects.Contains(subject.Id);
 
                     var capturedSubject = subject;
-                    var capturedStudent = student;
                     var capturedEntry   = entry;
+                    var capturedId      = subject.Id;
 
                     var card = new Border
                     {
@@ -143,7 +206,6 @@ public partial class DayView : UserControl
                     headerRow.Children.Add(nameBlock);
 
                     // Expand/collapse button
-                    var capturedId  = subject.Id;
                     var expandLabel = expanded ? "▲" : "▼";
                     var expandHint  = entry?.Items.Count > 0
                         ? $"{entry.Items.Count} lesson{(entry.Items.Count == 1 ? "" : "s")}"
@@ -158,17 +220,17 @@ public partial class DayView : UserControl
                     if (!string.IsNullOrEmpty(expandHint))
                         expandPanel.Children.Add(new TextBlock
                         {
-                            Text       = expandHint,
-                            FontSize   = 11,
-                            Foreground = new SolidColorBrush(ThemeColors.TextSecondary),
-                            Margin     = new Thickness(0, 0, 4, 0),
+                            Text              = expandHint,
+                            FontSize          = 11,
+                            Foreground        = new SolidColorBrush(ThemeColors.TextSecondary),
+                            Margin            = new Thickness(0, 0, 4, 0),
                             VerticalAlignment = VerticalAlignment.Center
                         });
                     expandPanel.Children.Add(new TextBlock
                     {
-                        Text       = expandLabel,
-                        FontSize   = 11,
-                        Foreground = new SolidColorBrush(ThemeColors.TextSecondary),
+                        Text              = expandLabel,
+                        FontSize          = 11,
+                        Foreground        = new SolidColorBrush(ThemeColors.TextSecondary),
                         VerticalAlignment = VerticalAlignment.Center
                     });
                     expandPanel.MouseLeftButtonUp += (_, ev) =>
@@ -233,33 +295,69 @@ public partial class DayView : UserControl
                         if (entry == null || (entry.Items.Count == 0 && string.IsNullOrWhiteSpace(entry.Notes)))
                             content.Children.Add(new TextBlock
                             {
-                                Text      = "Click subject name to add lesson notes",
-                                FontSize  = 12,
+                                Text       = "Click subject name to add lesson notes",
+                                FontSize   = 12,
                                 Foreground = new SolidColorBrush(ThemeColors.TextSecondary),
-                                FontStyle = FontStyles.Italic,
-                                Margin    = new Thickness(0, 4, 0, 0)
+                                FontStyle  = FontStyles.Italic,
+                                Margin     = new Thickness(0, 4, 0, 0)
                             });
                     }
 
                     Grid.SetColumn(content, 1);
                     innerGrid.Children.Add(content);
 
-                    // Completion dot (visible in both states)
-                    var dotColor = entry?.IsComplete == true
-                        ? Color.FromRgb(0x22, 0xC5, 0x5E)
-                        : Color.FromRgb(0xCC, 0xD0, 0xD8);
-                    var dot = new Border
+                    // Action buttons column: ✓ complete + ✕ delete
+                    var actionPanel = new StackPanel
                     {
-                        Width               = 14,
-                        Height              = 14,
-                        CornerRadius        = new CornerRadius(7),
-                        Background          = new SolidColorBrush(dotColor),
-                        VerticalAlignment   = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        Margin              = new Thickness(0, 0, 14, 0)
+                        Orientation       = Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin            = new Thickness(0, 0, 10, 0)
                     };
-                    Grid.SetColumn(dot, 2);
-                    innerGrid.Children.Add(dot);
+
+                    bool blockDone = entry?.IsComplete == true;
+
+                    // Complete toggle
+                    var completeBtn = MakeActionButton(
+                        blockDone ? "✓" : "○",
+                        blockDone ? Color.FromRgb(0x22, 0xC5, 0x5E) : ThemeColors.TextSecondary,
+                        blockDone ? "Mark incomplete" : "Mark complete",
+                        () =>
+                        {
+                            var e2 = capturedEntry ?? _db.EnsureEntry(capturedSubject.Id, capturedStudent.Id, _currentDate.ToString("yyyy-MM-dd"));
+                            bool markDone = !(capturedEntry?.IsComplete ?? false);
+                            _db.SetEntryCompleteWithItems(e2.Id, markDone);
+                            Render();
+                        });
+                    actionPanel.Children.Add(completeBtn);
+
+                    // Delete occurrence
+                    var deleteBtn = MakeActionButton(
+                        "✕",
+                        Color.FromRgb(0xCC, 0x22, 0x22),
+                        "Remove from this day",
+                        () =>
+                        {
+                            var res = MessageBox.Show(
+                                $"Remove '{capturedSubject.Name}' on {_currentDate:MMM d}?\n\nYes = this date only\nNo = remove subject entirely",
+                                "Remove Subject",
+                                MessageBoxButton.YesNoCancel,
+                                MessageBoxImage.Question);
+                            if (res == MessageBoxResult.Yes)
+                            {
+                                _db.AddExcludedDate(capturedSubject, _currentDate.ToString("yyyy-MM-dd"));
+                                if (capturedEntry != null) _db.DeleteEntry(capturedEntry.Id);
+                                Render();
+                            }
+                            else if (res == MessageBoxResult.No)
+                            {
+                                _db.DeleteSubject(capturedSubject.Id);
+                                Render();
+                            }
+                        });
+                    actionPanel.Children.Add(deleteBtn);
+
+                    Grid.SetColumn(actionPanel, 2);
+                    innerGrid.Children.Add(actionPanel);
 
                     card.Child = innerGrid;
                     SubjectList.Children.Add(card);
@@ -285,6 +383,40 @@ public partial class DayView : UserControl
             };
             SubjectList.Children.Add(addBtn);
         }
+    }
+
+    private static FrameworkElement MakeActionButton(string text, Color color, string tooltip, Action onClick)
+    {
+        var tb = new TextBlock
+        {
+            Text                = text,
+            FontSize            = 14,
+            Foreground          = new SolidColorBrush(color),
+            VerticalAlignment   = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
+        var bg = ThemeColors.Background;
+        bool isDark = bg.R * 0.299f + bg.G * 0.587f + bg.B * 0.114f < 128;
+        var hoverBg = new SolidColorBrush(isDark
+            ? Color.FromArgb(55, 255, 255, 255)
+            : Color.FromArgb(55, 0,   0,   0));
+
+        var btn = new Border
+        {
+            Child        = tb,
+            Padding      = new Thickness(6, 3, 6, 3),
+            Margin       = new Thickness(2, 0, 0, 0),
+            CornerRadius = new CornerRadius(4),
+            Background   = Brushes.Transparent,
+            Cursor       = Cursors.Hand,
+            ToolTip      = tooltip
+        };
+
+        btn.MouseLeftButtonUp += (_, e) => { onClick(); e.Handled = true; };
+        btn.MouseEnter += (_, _) => btn.Background = hoverBg;
+        btn.MouseLeave += (_, _) => btn.Background = Brushes.Transparent;
+        return btn;
     }
 
     private static Color ParseHexColor(string hex)
